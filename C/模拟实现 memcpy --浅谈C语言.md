@@ -4,6 +4,14 @@
 
 C 库函数 **void \*memcpy(void \*str1, const void \*str2, size_t n)** 从存储区 **str2** 复制 **n** 个字节到存储区 **str1**。
 
+`memcpy` 是最快的内存到内存复制子程序。
+
+它通常比必须扫描其所复制数据的strcpy ，或必须预防以处理重叠输入的memmove更高效。
+
+[memcpy, memcpy_s - C++中文 - API参考文档 (apiref.com)](https://www.apiref.com/cpp-zh/c/string/byte/memcpy.html)
+
+
+
 ## 声明
 
 下面是 memcpy() 函数的声明。
@@ -52,3 +60,8 @@ int main()
     return 0;
 }
 ```
+
+
+
+
+
