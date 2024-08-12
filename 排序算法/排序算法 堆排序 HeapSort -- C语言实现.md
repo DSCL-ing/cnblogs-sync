@@ -11,6 +11,21 @@
 
 
 
+### 堆排序的好处：
+
+1. **最坏情况性能保证**：
+   - 堆排序的时间复杂度在最坏情况下也是 O(n log n)，这使得 Introsort 即使在处理最不利的输入数据时也能保持高效。
+2. **简单性**：
+   - 堆排序算法相对简单，易于实现，尤其是在 C++ 标准库中已经提供了现成的函数，如 `std::make_heap` 和 `std::sort_heap`。
+3. **无需额外存储空间**：
+   - 堆排序是原地排序算法，除了几个辅助变量外不需要额外的存储空间。这使得它适用于内存受限的环境。
+4. **稳定性**：
+   - 虽然堆排序本身不是稳定的排序算法，但在 Introsort 的上下文中，这并不是一个问题，因为快速排序本身也不稳定。
+
+堆排序属于选择排序
+
+
+
 ### 算法步骤
 
 1. 创建一个堆 H[0……n-1]；
@@ -23,51 +38,11 @@
 ### 代码实现
 
 ```
-//原理
-/*
-1、建堆：向下调整算法从下往上建堆
-2、选数、向下重新调整堆
-*/
-
-
-
-/*选择排序*/
-static void Swap(int *p1, int *p2)
+void HeapSort(int *a, int size)
 {
-	int tmp = 0;
-	tmp = *p1;
-	*p1 = *p2;
-	*p2 = tmp;
-}
-
-
-
-void AdjustDown(int *a, int size, int parent) //小堆
-{
-
-	int child = parent * 2 + 1;
-	while (child < size)
-	{
-		if (child + 1 < size &&a[child] < a[child + 1])  //小于选出大的 ， 大于选出小的
-		{
-			child++;
-		}
-		if (a[child] > a[parent])//小堆大于最小孩子就交换，
-		{						 //大堆小于最大孩子就交换
-			Swap(&a[child], &a[parent]);
-			parent = child;
-			child = parent * 2 + 1;
-		}
-		else
-		{
-			break;
-		}
-	}
-}
-
-void HeapSort(int *a, int size)  //升序建大堆，降序建小堆
-{
-	/* ---- 向下调整算法建堆  ----*/  //优点，少去最后一层，也是最多的一层，
+	assert(a);
+	
+	// ---- 1. 向下调整算法建堆  ----
 	//时间复杂度O(n)
 	int parent = (size - 1 - 1) / 2;
 	while (parent >= 0)
@@ -76,18 +51,19 @@ void HeapSort(int *a, int size)  //升序建大堆，降序建小堆
 		parent--;
 	}
 
-	/* ---- 选数 ----*/
-	//时间复杂度O(n*logN),好像是说n个数都要高度次调整
-	int end = size - 1;//不改变原数据
-	while (end>0)
+	
+	// ---- 2. 选数 ----
+	//时间复杂度O(n*logN),n个数都要高度次调整
+	//int end = size - 1; //下标版本
+	//元素个数版本,能够复用删除写法
+    while (size > 1) //元素个数大于1
 	{
-		Swap(&a[0], &a[end]);//选数,选完就少一个
-		end--;
-		AdjustDown(a, end, 0);//
+		Swap(&a[0], &a[size - 1]);		//交换
+		size--;
+		AdjustDown(a, size, 0);  //调整堆 -- 注意,此处end为元素个数
 	}
 
 }
-
 ```
 
 
