@@ -1,8 +1,18 @@
-## 选择排序
+## 直接选择排序
 
 ### 描述
 
 选择排序是一种简单直观的排序算法，无论什么数据进去都是 O(n²) 的时间复杂度。所以用到它的时候，数据规模越小越好。唯一的好处可能就是不占用额外的内存空间了。
+
+
+
+### 选择排序的缺点：
+
+1. **效率低下**：选择排序的时间复杂度始终是 𝑂(𝑛2)，无论最好、平均还是最坏情况。这使得它在处理大量数据时效率极低。
+2. **非稳定排序**：选择排序是不稳定的排序算法，即相等的元素在排序后可能会改变原有的相对顺序。
+3. **大量的比较操作**：在每一轮迭代中，选择排序都需要遍历未排序的部分以寻找最小（或最大）元素，这导致了大量的比较操作。
+
+
 
 ### 算法步骤
 
@@ -31,7 +41,6 @@ void SelectSort(int *a, int n)
 	int maxi = begin; int mini = begin;
 	while (begin < end)
 	{
-		//循环一轮 
 		for (int i = begin + 1; i <=end; i++) //找最大最小数 的下标
 		{
 			if (a[i] < a[mini])
@@ -43,19 +52,17 @@ void SelectSort(int *a, int n)
 				maxi = i;
 			}
 		}
-		//找到后交换，[mini]要到begin位置
+		
 	Swap(&a[begin], &a[mini]);
-	if (maxi == begin)  //如果maxi刚好处于begin，mini回到begin后，maxi被交换到原来mini的位置，需修正
+	if (maxi == begin)  //maxi刚好处于begin时,需修正
 	{
 		maxi = mini;
 	}
 	Swap(&a[end], &a[maxi]);
-	//最后再缩小范围
 	begin++;
 	end--;
 	}
 }
 
-/*每一轮比较从begin+1开始 ， end+1结束（要和end比）*/
 ```
 
