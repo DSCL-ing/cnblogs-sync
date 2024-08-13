@@ -138,7 +138,8 @@ void hoare(int* a, int begin, int end) {
 
 缺点:
 
-随机情况下,依旧有可能选择到边缘数(key比较大或比较小). 因此还有别的方法如随机数选择等...
+1. 随机情况下,依旧有可能选择到边缘数(key比较大或比较小). 因此还有别的方法如随机数选择等...
+2. 逆序情况下,
 
 ##### 代码实现
 
@@ -219,11 +220,83 @@ void hoare(int* a, int begin, int end) {
 
 #### 优化二 小区间优化
 
+当快排在递归到一定层次后,拆分得到很多子数组,且子数组又很小.此时如果继续对小数组进行拆分,则需要很多次(二叉树越深子树越多,最后一层占一半,),很多次就意味着要申请多次栈帧,以及其他因递归带来的开销(虽说现代编译器对递归优化很好);另一方面,当递归到深层时,往往子数组也比较小了,对小型数据堆,显然能够有更好的方案去处理.因此可以针对性进行优化:
+
+根据插入排序的特性,在小型数据集(n<10或n<16)时插入排序的适应性非常强,特别高效.因此小区间优化可以选择插入排序取代.(大约减少80％的递归调用)
+
+如在内省排序(std::sort采用的算法)中,当数组大小小于16时,就替换成插入排序进行排序.
+
+
+
+##### 代码实现
+
+```
+void hoare_small(int* a, int begin, int end) {
+
+    //一个元素或没有元素时,递归结束
+    if (begin >= end) {
+        return;
+    }
+    if (end - begin + 1 < 16) {
+        InsertSort(a + begin, end - begin + 1);
+    }
+    else {
+        int mid = getMidIndex(a, begin, end);
+        Swap(&a[begin], &a[mid]);
+
+        int left = begin;
+        int right = end;
+        int keyi = left; //keyi == key index == key是下标
+
+        while (left < right) {
+            while (left < right && a[right] >= a[keyi]) {  //要找小于key的,大于等于都要走,不然执行不了函数体(下标移动),导致死循环
+                right--;  //不能合并,要保证下标指向的是找到的那个值
+            }
+            while (left < right && a[left] <= a[keyi]) {
+                left++;
+            }
+            Swap(&a[left], &a[right]);
+        }
+
+        Swap(&a[left], &a[keyi]);
+        keyi = left;
+
+        // [begin,keyi-1] keyi [keyi+1,end]
+        hoare_small(a, begin, keyi - 1);
+        hoare_small(a, keyi + 1, end);
+    }
+}
+```
+
+
+
+##### 测试
+
+一亿数据下(9成随机数)测试结果,测试用例下文提供
+
+![image-20240813221657101](%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95%20%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%20quickSort%20--%20C%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0.assets/image-20240813221657101.png)
+
+可见小区间优化能够带来一定的性能提升.
+
+>  std::sort是内观排序,是混合排序(快排,堆排,插入),综合性能比较稳定
+
+
+
 
 
 
 
 ### 三路排序算法
+
+
+
+#### 背景
+
+虽然三数取中能有效解决正序退化情况,但是逆序情况下并没有太多优化,依旧会退化成O(n^2^).
+
+因此提出三路并排算法
+
+
 
 #### 概念
 
