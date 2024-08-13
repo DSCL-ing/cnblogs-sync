@@ -8,7 +8,7 @@
 
 快速排序又是一种分而治之思想在排序算法上的典型应用。本质上来看，快速排序应该算是在冒泡排序基础上的递归分治法
 
-
+快速排序和冒泡排序同属于**交换排序**
 
 > *快速排序的最坏运行情况是 O(n²)，比如说顺序数列的快排。但它的平摊期望时间是 O(nlogn)，且 O(nlogn) 记号中隐含的常数因子很小，比复杂度稳定等于 O(nlogn) 的归并排序要小很多。所以，对绝大多数顺序性较弱的随机数列而言，快速排序总是优于归并排序。*
 >
@@ -74,15 +74,150 @@ hoare法相遇有两种情况,逐个分析证明:
 
 
 
-#### 代码实现
+#### 时间复杂度分析
+
+理想情况下:
+
+![image-20240813162228146](%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95%20%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%20quickSort%20--%20C%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0.assets/image-20240813162228146.png)
+
+最坏情况:
+
+当数组为顺序或逆序时,即每次选的key都是最小或最大时,快排会退化成O(n^2^).
+
+因为这样没有起到分而治之的作用,从树的角度看就是一棵只有单边生长的二叉树,高度可能达到n.
+
+
+
+
+
+#### 代码实现1
+
+```
+void hoare(int* a, int begin, int end) {
+
+    //一个元素或没有元素时,递归结束
+    if (begin >= end) {
+        return;
+    }
+
+    int left = begin;
+    int right = end;
+    int keyi = left; //keyi == key index == key是下标
+
+    while (left < right) {
+        while (left < right && a[right] >= a[keyi]) { //要找小于key的,大于等于都要走,不然执行不了函数体(下标移动),导致死循环
+            right--;  //不能合并,要保证下标指向的是找到的那个值
+        }
+        while (left < right && a[left] <= a[keyi]) {
+            left++;
+        }
+        Swap(&a[left], &a[right]);
+    }
+
+    Swap(&a[left], &a[keyi]);
+    keyi = left;
+
+    //区间划分成: [begin,keyi-1]  keyi  [keyi+1,end]
+    hoare(a, begin, keyi - 1);
+    hoare(a, keyi + 1, end);
+}
+```
+
+
+
+#### 优化一 三数取中
+
+由于一般的快排在**遇到key值为最大或最小时会退化成O(n^2^)**,为此需要让key尽可能不是最大或最小.通常的做法是进行三数取中.
+
+三数取中:即将数组的开始元素,数组的中间元素和数组的末尾元素三个数进行比较,**选出值为中间,不大不小的那个数**交换到最左边(默认)作为key值.
+
+这样做的好处是:
+
+1. 如果是顺序或逆序的情况,则key一定是处于中间大小;
+2. 如果是随机序列,则key值是三个数中不大不小的那一个,也能略微增加分支效率.
+
+缺点:
+
+随机情况下,依旧有可能选择到边缘数(key比较大或比较小). 因此还有别的方法如随机数选择等...
+
+##### 代码实现
+
+```
+void getMidIndex(int *a, int begin,  int end){
+	int mid = (begin+end)/2;
+	if(a[begin]>a[mid])
+	{
+		if(a[mid]>a[end])	return mid;
+		else if(a[begin]>a[end]) return end;
+		else return begin;
+	}
+	else
+	{
+		if(a[begin]>a[end]) return begin;
+		else if(a[min]>a[end]) return end;
+		else return mid;
+	}
+}
+```
+
+##### 逻辑测试
+
+测试原理:三数取中一共有3个变量(begin,mid,end),每个变量有3种属性(>,=,<),总共有9种情况.
+
+经穷举测试无误
+
+```
+int main() {
+    int a[] = { 5,1,8,4,2,7,5,9,6,4 };
+    std::cout<<getMidIndex(a,0,9);
+    return 0;
+}
+```
+
+
+
+
+
+##### 三数取中优化版本快排
+
+优化后时间复杂度几乎能稳定在O(N*log~2~N).
 
 ```
 
+void hoare(int* a, int begin, int end) {
+
+    //一个元素或没有元素时,递归结束
+    if (begin >= end) {
+        return;
+    }
+		
+		
+    int left = begin;
+    int right = end;
+    int keyi = left; //keyi == key index == key是下标
+
+    while (left < right) {
+        while (left < right && a[right] >= a[keyi]) { //要找小于key的,大于等于都要走,不然执行不了函数体(下标移动),导致死循环
+            right--;  //不能合并,要保证下标指向的是找到的那个值
+        }
+        while (left < right && a[left] <= a[keyi]) {
+            left++;
+        }
+        Swap(&a[left], &a[right]);
+    }
+
+    Swap(&a[left], &a[keyi]);
+    keyi = left;
+
+    //区间划分成: [begin,keyi-1]  keyi  [keyi+1,end]
+    hoare(a, begin, keyi - 1);
+    hoare(a, keyi + 1, end);
+}
 ```
 
 
 
-
+#### 优化二 小区间优化
 
 
 
