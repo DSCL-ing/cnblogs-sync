@@ -38,6 +38,8 @@
 ### 代码实现
 
 ```
+void AdjustDown()
+
 void HeapSort(int *a, int size)
 {
 	assert(a);

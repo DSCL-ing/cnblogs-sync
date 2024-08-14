@@ -24,7 +24,7 @@
 
 
 
-### hoare法
+### 1. hoare法
 
 #### 基本原理
 
@@ -99,10 +99,10 @@ void hoare(int* a, int begin, int end) {
     if (begin >= end) {
         return;
     }
-
-    int left = begin;
-    int right = end;
-    int keyi = left; //keyi == key index == key是下标
+		
+    int left = begin;		//递归区间起始
+    int right = end;		//递归区间末尾
+    int keyi = left;    //keyi == key_index == key的下标
 
     while (left < right) {
         while (left < right && a[right] >= a[keyi]) { //要找小于key的,大于等于都要走,不然执行不了函数体(下标移动),导致死循环
@@ -281,6 +281,22 @@ void hoare_small(int* a, int begin, int end) {
 >  std::sort是内观排序,是混合排序(快排,堆排,插入),综合性能比较稳定
 
 
+
+
+
+### 2. 挖坑法
+
+挖坑法是在hoare法的基础上,主要是改进优化实现思路,使其更容易实现,思想并无太大区别
+
+与hoare的区别:
+
+- hoare法key值参与排序,而挖坑法key值被保存起来,不参与排序.
+- hoare法是交换方式,而挖坑法因为多了key值的空间,采用的是覆盖的方式
+
+- 挖坑法相对于hoare法代码逻辑更容易实现.
+- 挖坑法性能比hoare略胜一筹:hoare是交换,挖坑法是直接覆盖,节约了一点性能
+
+具体方式:将基准值key保存.依旧从右边开始找小;区别开始,当第一次右边找到小后,就直接向key位置写入/覆盖,写完后,原来的小的位置就形成一个"坑",然后再左边找大,找到大后向上一步右边第一次找到小的位置写入/覆盖,即写到坑中,然后自己原来的位置就形成新的"坑",循环过程数组始终只有一个坑位存在.如此循环下去.
 
 
 
