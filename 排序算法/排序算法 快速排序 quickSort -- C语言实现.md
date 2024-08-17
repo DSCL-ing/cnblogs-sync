@@ -318,9 +318,58 @@ void hoare_small(int* a, int begin, int end) {
 
 
 
+### 3. 前后指针法
+
+性能较差,用于给3路划分铺垫
+
+```
+int _PointQuickSort(int *a, int begin, int end)
+{
+	int mid = getMidIndex(a, begin, end);//mid是中间索引（中间值的下标）
+	Swap(&a[begin], &a[mid]); //获取到中间值的下标后对换begin和mid对应的值，使key对应的是中间值，消除有序
+
+	int prev = begin; int cur = begin+1;
+	int keyi = begin;
+	while (cur <= end)
+	{
+		if (a[cur] < a[keyi] && ++prev != cur) //后一个条件是用于限制指针相同情况下进行交换，因为交换有代价，减少时间
+		{										//加不加等号都行,最好不加,少交换减少消耗
+			//++prev;
+			Swap(&a[prev], &a[cur]);
+		} 
+		++cur;
+	}
+	Swap(&a[keyi], &a[prev]);
+	keyi = prev;
+	return keyi;
+}
+	
+void QuickSort(int *a, int begin, int end)
+{
+	if (begin >= end)
+	{
+		return;
+	}
 
 
-### 三路排序算法
+	if ((end - begin + 1) < 15) //为什么15？，最后一层为1个，其次2，倒数第三层4.... , 1+2+4<15 即最后三层
+	{							//最后三层最好，多少都会慢---前提是递归没有递归优化，不然相差不大
+		InsertSort(a + begin, end - begin + 1);
+	}
+	else
+	{
+		int keyi = _PointQuickSort(a, begin, end);
+		QuickSort(a, begin, keyi - 1);
+		QuickSort(a, keyi + 1, end);
+	}
+}
+```
+
+
+
+
+
+### 4. 三路排序算法
 
 
 
@@ -330,7 +379,7 @@ void hoare_small(int* a, int begin, int end) {
 
 因此提出三路并排算法
 
-
+三鹿并排算法综合性能较好,能够应对大部分极端情况
 
 #### 概念
 
@@ -342,6 +391,33 @@ void hoare_small(int* a, int begin, int end) {
 
 三路快速排序算法是使用三路划分策略对数组进行划分，对处理大量重复元素的数组非常有效提高快速排序的过程。它添加处理等于划分元素值的逻辑，将所有等于划分元素的值集中在一起。
 
+
+
+#### 实现思路
+
+- 定义三个变量 
+  	left = begin,
+  	cur = begin+1,
+  	right
+
+- 根据三种情况判断执行
+
+  1. cur<key:
+     	swap([left++],[cur++]); 
+
+  2. cur==key:
+     	cur++
+
+  3. cur>key:
+
+     ​	swap([light],[cur]); //cur只交换不加价,
+     ​	light--;
+
+- 最终,left和right是key相同的一段区间,因此三路划分完成
+  [begin , left-1] [left , right] [right , end]
+
+##### 代码实现
+
 ```
 static void Swap(int *p1, int *p2)
 {
@@ -352,68 +428,9 @@ static void Swap(int *p1, int *p2)
 }
 
 
-//直接插入排序
-static void InsertSort(int* a, int n)
-{
-	for (int i = 0; i < n - 1; i++)  //n个数，只需排n-1个，（因为第一个必定有序--默认）
-	{
-		int end = i;  //下标 ， 已排序数组【0 - end】
-		int tmp = a[end + 1];  //元素交换用 ， 数组往后覆盖挪动
-		//一个元素排序，排一个(先假想出一堆乱序数组)
-		while (end >= 0)
-		{
-			if (a[end] > tmp)
-			{
-				a[end + 1] = a[end]; //往后挪动
-				end--;   //比下一个元素
-			}
-			else
-			{
-				break; //插入
-			}
-		}
-		a[end + 1] = tmp; //插在end后面
-	}
-}
 
-/*三数取中，消除有序影响*/
-static int getMidIndex(int *a, int begin, int end)
-{
-	int mid = (begin + end) / 2;
-	if (a[begin] > a[mid])
-	{
-		if (a[begin] < a[end])
-		{
-			return begin;
-		}
-		else if (a[mid] > a[end])
-		{
-			return mid;
-		}
-		else
-		{
-			return end;
-		}
-	}
-	else
-	{
-		if (a[mid] < a[end])
-		{
-			return mid;
-		}
-		else if (a[begin] > a[end])
-		{
-			return begin;
-		}
-		else
-		{
-			return end;
-		}
-	}
-}
-
-
-static void partitionQSort(int *a, int begin, int end)  //[begin , left-1] [left , right] [right , end]
+//[begin , left-1] [left , right] [right , end]
+static void partitionQSort(int *a, int begin, int end)  
 {
 	if (begin >= end)
 	{
@@ -455,206 +472,6 @@ static void partitionQSort(int *a, int begin, int end)  //[begin , left-1] [left
 ```
 
 
-
-### 前后指针法
-
-```
-/*交换函数*/
-static void Swap(int *p1, int *p2)
-{
-	int tmp = 0;
-	tmp = *p1;
-	*p1 = *p2;
-	*p2 = tmp;
-}
-
-/*三数取中，消除有序影响*/
-static int getMidIndex(int *a, int begin, int end)
-{
-	int mid = (begin + end) / 2;
-	if (a[begin] > a[mid])
-	{
-		if (a[begin] < a[end])
-		{
-			return begin;
-		}
-		else if (a[mid] > a[end])
-		{
-			return mid;
-		}
-		else
-		{
-			return end;
-		}
-	}
-	else
-	{
-		if (a[mid] < a[end])
-		{
-			return mid;
-		}
-		else if (a[begin]>a[end])
-		{
-			return begin;
-		}
-		else
-		{
-			return end;
-		}
-	}
-}
-
-
-int _HoareQuickSort(int *a, int begin , int end)
-{
-
-	int mid = getMidIndex(a , begin , end);//mid是中间索引（中间值的下标）
-	Swap(&a[begin], &a[mid]); //获取到中间值的下标后对换begin和mid对应的值，使key对应的是中间值，消除有序
-
-	int left = begin; int right = end;
-	int keyi = left;
-
-	while (left < right)
-	{
-		while (left < right && a[right] >= a[keyi])
-		{
-			right--;
-		}
-
-		while (left < right && a[left] <= a[keyi])
-		{
-			left++;
-		}
-
-		Swap(&a[left], &a[right]);
-	}
-	Swap(&a[keyi], &a[right]);
-	keyi = right;
-
-	return keyi;
-
-}
-
-int _HoleQuickSort(int *a, int begin, int end)
-{
-
-	int mid = getMidIndex(a, begin, end);//mid是中间索引（中间值的下标）
-	Swap(&a[begin], &a[mid]); //获取到中间值的下标后对换begin和mid对应的值，使key对应的是中间值，消除有序
-
-	int left = begin; int right = end;
-	int key = a[left];
-
-	int hole = left;//第一个坑给begin'
-	while (left < right)
-	{
-		while (left < right && key <= a[right])
-		{
-			right--;
-		}
-		a[hole] = a[right];
-		hole = right;
-
-		while (left < right && key >= a[left])
-		{
-			left++;
-		}
-		a[hole] = a[left];
-		hole = left;
-	}
-	a[hole] = key;
-	return hole;
-
-	//_HoleQuickSort(a, begin, hole - 1);
-	//_HoleQuickSort(a, hole + 1, end);
-}
-
-int _PointQuickSort(int *a, int begin, int end)
-{
-
-	int mid = getMidIndex(a, begin, end);//mid是中间索引（中间值的下标）
-	Swap(&a[begin], &a[mid]); //获取到中间值的下标后对换begin和mid对应的值，使key对应的是中间值，消除有序
-
-	int prev = begin; int cur = begin+1;
-	int keyi = begin;
-	while (cur <= end)
-	{
-		if (a[cur] < a[keyi] && ++prev != cur) //后一个条件是用于限制指针相同情况下进行交换，因为交换有代价，减少时间
-		{										//加不加等号都行,最好不加,少交换减少消耗
-			//++prev;
-			Swap(&a[prev], &a[cur]);
-		} 
-		++cur;
-	}
-	Swap(&a[keyi], &a[prev]);
-	keyi = prev;
-	return keyi;
-}
-
-/*三路“划分partition分割”*/  // ----  独立使用，不能返回key了，因为分成了两个区间
-void partitionQSort(int *a, int begin, int end)  //[begin , left-1] [left , right] [right , end]
-{
-	if (begin >= end)
-	{
-		return;
-	}
-	int mid = getMidIndex(a, begin, end);
-	Swap(&a[begin], &a[mid]);
-
-	int left = begin; int right = end;
-	int cur = begin+1;
-	int key = a[left];
-
-	while (cur <= right)
-	{
-		if (a[cur] < key)
-		{
-			Swap(&a[cur++], &a[left++]);//a[left]永远小于key
-		}
-		else if (a[cur] == key)
-		{
-			cur++;
-		}
-		else			
-		{				
-			Swap(&a[cur], &a[right--]); 
-		}
-/*
-* 如果是大于，则c不动，只控制right往前走，原因是不知道啊a[right]大小，再走就会出问题。
-解决方法：交换a[right--]后保持cur不动，让循环进入下一轮，比较新的a[cur]和key，
-在新一轮的循环中如果上一轮从right换过来的a[cur]比key大就丢回去，如果小于等于就按命令走
-这样就能保证	左边<key ,中间 == key ,右边>key
-*/
-	}
-
-
-
-	
-	QuickSort(a, begin, left - 1);
-	QuickSort(a, right+1, end);
-
-}
-
-
-void QuickSort(int *a, int begin, int end)
-{
-	if (begin >= end)
-	{
-		return;
-	}
-
-
-	if ((end - begin + 1) < 15) //为什么15？，最后一层为1个，其次2，倒数第三层4.... , 1+2+4<15 即最后三层
-	{							//最后三层最好，多少都会慢---前提是递归没有递归优化，不然相差不大
-		InsertSort(a + begin, end - begin + 1);
-	}
-	else
-	{
-		int keyi = _PointQuickSort(a, begin, end);
-		QuickSort(a, begin, keyi - 1);
-		QuickSort(a, keyi + 1, end);
-	}
-}
-```
 
 
 
@@ -907,8 +724,11 @@ void _NonRecursionQSort1(int *a, int begin, int end)
 
 
 
+
+
+
+
 ### 测试代码
 
-```
-```
+见测试工具篇
 
