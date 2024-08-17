@@ -1,10 +1,10 @@
+# ProtoBuf
 
 
 
 
 
-
-ProtoBuf 安装
+## ProtoBuf 安装
 
 下载地址：https://github.com/protocolbuffers/protobuf/releases
 
@@ -95,4 +95,12 @@ source /etc/profile
 
 
 
-检查是否配置成功 打开cmd,输⼊: protoc --version 查看版本，有显⽰说明成功
+检查是否配置成功\
+
+- Win打开cmd,输⼊: protoc --version 查看版本，有显⽰说明成功
+- linux命令提示符输入protoc --version 查看版本，有显⽰说明成功
+
+
+
+
+
