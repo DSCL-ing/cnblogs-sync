@@ -1,3 +1,5 @@
+[toc]
+
 ### 内观排序/内省排序
 
 >[内省排序 - 维基百科，自由的百科全书 (wikipedia.org)](https://zh.wikipedia.org/wiki/内省排序)
