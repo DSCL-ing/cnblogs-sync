@@ -141,7 +141,7 @@ size_type size() const |返回set中有效元素的个数
 
 
 
-set的修改操作
+set的常规操作
 
 |函数声明 | 功能介绍|
 |---|---|
@@ -223,7 +223,7 @@ map的容量与元素访问
 
 
 
-map中元素的修改
+map中元素的操作
 |函数声明 | 功能介绍|
 |---|---|
 pair<iterator,bool> insert ( const value_type& x )|在map中插入键值对x注意x是一个键值对，返回值也是键值对：iterator代表新插入元素的位置，bool代表释放插入成功
@@ -235,6 +235,10 @@ void clear ( ) |将map中的元素清空
 iterator ﬁnd ( const key_type& x )|在map中插入key为x的元素，找到返回该元素的位置的迭代器，否则返回end
 const_iterator ﬁnd ( const key_type& x ) const|在map中插入key为x的元素，找到返回该元素的位置的const迭代器，否则返回cend
 size_type count ( const key_type& x ) const|返回key为x的键值在map中的个数，注意map中key是唯一的，因此该函数的返回值要么为0，要么为1，因此也可以用该函数来检测一个key是否在map中
+
+> 当key已存在时，insert插入失败
+>
+> [] 支持 查找，插入，修改
 
 
 
@@ -299,6 +303,12 @@ void TestSet()
      return 0;
 }
 ```
+
+
+
+【注意】
+
+multiset中的find，规定找**中序的第一个**
 
 
 
