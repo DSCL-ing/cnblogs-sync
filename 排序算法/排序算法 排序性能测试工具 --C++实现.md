@@ -11,15 +11,62 @@
 
 源码我拆分成两部分,一部分为测试,一部分为sort源码.需要合并一起使用
 
-### test
+### Util
 
 函数:
 
-- test_? : 测试特定排序,还可以再解耦,把sort作为参数;有需要可以尝试
-- void PrintArray(int* a, int size) ; //数组打印 -- 小数组情况查看常用
-- void RandomArray_Generator(int *a,int n) ; //随机数组生成
-- test_sort : 控制变量,决定数组大小...
-- ...
+- void Cost(std::function<void(void)> func);  //测试函数时间花费。使用包装器可接收任意可调用对象
+- void PrintArray(int* a, int size) ; 	    //数组打印 -- 小数组情况查看常用
+- void RandomArray_Generator(int *a,int n) ;  //随机数组生成
+
+
+
+### Main
+
+```
+#include<iomanip>
+#include<functional>
+#include<random>
+#include<iostream>
+#include<chrono>
+
+void RandomArray_Generator(int *a,int n) {
+    std::random_device rnd;//random num device //效率低，只用于生成种子
+    std::mt19937 rng(rnd()); //random num generator -- 生成随机数
+    std::uniform_int_distribution<int> uni(0, 1000000000);//整型区间筛选
+    //[0-N]有6成为不重复,4成重复 --若需要9成不重复需要扩大筛选范围为10倍的N,即插入N需筛选10N
+
+    //int a[] = { 3,1,8,4,2,7,5,9,6,0 }; //自定义数组
+    int size = n;
+    for (int i = 0; i < size; i++) {
+        //a[i] = uni(rng); //随机数
+        a[i] = size - i; //逆序
+        //a[i] = i;         //正序
+        //a[i] = size/2;     //重复数
+        if (i % 10000 == 0) {
+            a[i] = uni(rng);  //插入一些随机数
+        }
+    }
+}
+
+
+void Cost(std::function<void(void)> func) {
+    auto begin = std::chrono::high_resolution_clock::now();
+    func();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> cost = end - begin;
+    std::cout<<cost.count()<<"/s" << std::endl;
+}
+
+void PrintArray(int* a, int size) {
+    for (int i = 0; i < size; i++) {
+        std::cout << a[i] << " ";
+    }
+    std::cout << std::endl;
+}
+```
+
+
 
 ```
 //Test_Util
@@ -41,7 +88,6 @@ void RandomArray_Generator(int *a,int n) ;
 
 
 // 放入sort...
-
 
 
 void test_Insert(int size) {
@@ -161,31 +207,8 @@ void test_std_heap( int size) {
     std::cout << cost4.count() << "秒" << std::endl;
 }
 
-void PrintArray(int* a, int size) {
-    for (int i = 0; i < size; i++) {
-        std::cout << a[i] << " ";
-    }
-    std::cout << std::endl;
-}
 
-void RandomArray_Generator(int *a,int n) {
-    std::random_device rnd;//random num device //效率低，只用于生成种子
-    std::mt19937 rng(rnd()); //random num generator -- 生成随机数
-    std::uniform_int_distribution<int> uni(0, 1000000000);//整型区间筛选
-    //[0-N]有6成为不重复,4成重复 --若需要9成不重复需要扩大筛选范围为10倍的N,即插入N需筛选10N
 
-    //int a[] = { 3,1,8,4,2,7,5,9,6,0 }; //自定义数组
-    int size = n;
-    for (int i = 0; i < size; i++) {
-        //a[i] = uni(rng); //随机数
-        a[i] = size - i; //逆序
-        //a[i] = i;         //正序
-        //a[i] = size/2;     //重复数
-        if (i % 10000 == 0) {
-            a[i] = uni(rng);  //插入一些随机数
-        }
-    }
-}
 
 
 void test_sort(int n) {
@@ -215,7 +238,7 @@ int main() {
 
 
 
-### sort
+### Sort
 
 ```
 static void Swap(int* p1, int* p2)
