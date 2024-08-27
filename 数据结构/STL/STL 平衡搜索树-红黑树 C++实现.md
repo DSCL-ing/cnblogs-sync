@@ -220,11 +220,13 @@ private:
 
 
 
-## 需要修正的所有情况
+## 需要修正的所有情况(以左为例)
 
 红黑树需要修正的所有情况都是从下面这棵抽象树衍生出的. 
 
 ![image-20240826182022937](STL%20%E5%B9%B3%E8%A1%A1%E6%90%9C%E7%B4%A2%E6%A0%91-%E7%BA%A2%E9%BB%91%E6%A0%91%20C++%E5%AE%9E%E7%8E%B0.assets/image-20240826182022937.png)
+
+实际衍生情况对比起AVL树会更加复杂,也不容易描述.
 
 只有理解红黑树基本的修正情况才能够实现红黑树.下面将循序渐进讲解:
 
@@ -415,8 +417,244 @@ private:
 
 ### 总结：
 
-往后还有3级，4级...等,我们知道2级怎么来的就足够了,套用1级的方法,加上迭代修正,就能完成最终平衡.
+往后还有3级，4级...等,能够分析出都可以由1级推导出来,因此我们知道2级怎么来的就足够了,套用1级的方法,加上迭代修正,就能完成最终平衡.
 
 
 
 ## 插入修正代码实现
+
+```
+#include<iostream>
+#include<chrono>
+#include<functional>
+#include<random>
+#include<iomanip>
+#include<string>
+#include<cassert>
+
+enum class Color { RED, BLACK };
+
+template<class K, class V>
+struct RBTreeNode {
+    //三叉链
+    RBTreeNode* _left;
+    RBTreeNode* _right;
+    RBTreeNode* _parent;
+
+    std::pair<K,V> _kv;
+    Color _col;
+    
+    RBTreeNode(const decltype(_kv)& kv)
+    : _left(nullptr)
+    ,_right(nullptr)
+    ,_parent(nullptr)
+    ,_kv(kv)
+    ,_col(Color::RED) //默认为红,因为规则最宽松
+    {}
+};
+
+template<class K,class V>
+class RBTree {
+public:
+    using Node = RBTreeNode<K, V>;
+    RBTree()
+        :_root(nullptr)
+    {}
+public:
+    bool Insert(const std::pair<K, V>& kv) {
+        if (_root == nullptr) {
+            _root = new Node(kv);
+            _root->_col = Color::BLACK;
+            return true;
+        }
+        if (kv.first == 1) {
+            int x = 0;
+        }
+        Node* cur = _root;
+        Node* parent = _root;
+        while (cur) {
+            if (kv.first > cur->_kv.first) {
+                parent = cur;
+                cur = cur->_right;
+            }
+            else if (kv.first < cur->_kv.first) {
+                parent = cur;
+                cur = cur->_left;
+            }
+            else {
+                //存在相同的
+                return false;
+            }
+        } //while比较过程 [end]
+
+        //没找到,新增
+        cur = new Node(kv); //cur地址改变,只能使用kv进行比较(始终使用kv就好了)
+        //维护三叉链
+        cur->_parent = parent;
+        if (cur->_kv.first > parent->_kv.first) {
+            parent->_right = cur;
+        }
+        else {
+            parent->_left = cur;
+        }
+
+
+        //检查和调整红黑树
+        //FixInsert();
+        /**
+         * 右单旋情形									    旋转后
+         *            g(黑)							 |	           p(黑)
+         *      p(红)       u(黑)				     |	      c(红)     g(红)
+         *    c(红)	                     		     |                      u(黑)
+         */
+
+         /**
+          * 左右双旋情形                                      旋转后
+          *            g(黑)						     |                 c(黑)
+          *    p(红)             u(黑)				 |          p(红)		 g(红)
+          *  x      c(红)        					 | 		x 			       u(黑)
+          */
+        while (parent && parent->_col == Color::RED) {
+            Node* grandpa = parent->_parent;
+            Node* uncle = nullptr;
+            if (parent == grandpa->_left && grandpa->_right) {
+                uncle = grandpa->_right;
+            }
+            else if (parent == grandpa->_right && grandpa->_left) {
+                uncle = grandpa->_left;
+            }
+            else {
+                uncle = nullptr;
+            }
+
+            //叔叔存在且为红
+            if (uncle && uncle->_col == Color::RED) {
+                parent->_col = Color::BLACK;
+                grandpa->_col = Color::RED;
+                uncle->_col = Color::BLACK;
+
+                cur = grandpa;
+                parent = grandpa->_parent;
+            }
+            //叔叔为黑色或无(已经确定左右父爷叔)
+            else {
+                //左左:对爷爷右单旋
+                if (cur == parent->_left && parent == grandpa->_left) {
+                    RotateR(grandpa);
+                    parent->_col = Color::BLACK;
+                    grandpa->_col = Color::RED;
+                }
+                //左右:对父左单旋,对爷爷右单旋
+                else if (cur == parent->_right && parent == grandpa->_left) {
+                    RotateL(parent);                     //转成左右,cur变成父,父变成子
+                    RotateR(grandpa);                    //cur变成子树的根,右孩子是爷爷
+                    cur->_col = Color::BLACK;            //新爷爷变黑
+                    grandpa->_col = Color::RED;          //旧爷爷变红,和旧父同色
+                }
+                //右右
+                else if (cur == parent->_right && parent == grandpa->_right) {
+                    RotateL(grandpa);
+                    parent->_col = Color::BLACK;
+                    grandpa->_col = Color::RED;
+                }
+                //右左
+                else if (cur == parent->_left && parent == grandpa->_right) {
+                    RotateR(parent);                    //转成右右,此时cur变成父了
+                    RotateL(grandpa);                   //cur变成子树的根,左孩子是爷爷
+                    cur->_col = Color::BLACK;            //新爷爷变黑
+                    grandpa->_col = Color::RED;          //旧爷爷变红,和旧父同色
+                }
+                //检查/排错
+                else {
+                    assert(false);
+                }
+                //不需要更新变量,因为子树的根不是红了,不需要再更新
+                break;
+            }
+        }
+        //只有旋转会影响_root,旋转过程会自动更新_root,不用担心_root没有正确指向
+        //_root不影响所有路径的结点(同增同减),统一更新即可.
+        _root->_col = Color::BLACK;
+        return true;
+
+    }
+
+    void RotateL(Node* parent) {
+        Node* pparent = parent->_parent;
+        Node* cur = parent->_right;
+        Node* leftChild = cur->_left;
+
+        if (pparent) {
+            if (cur->_kv < pparent->_kv) {
+                pparent->_left = cur;
+                cur->_parent = pparent;
+            }
+            else {
+                pparent->_right = cur;
+                cur->_parent = pparent;
+            }
+        }
+        else {
+            cur->_parent = nullptr;
+            _root = cur;
+        }
+
+        parent->_right = leftChild;
+        if (leftChild) {
+            leftChild->_parent = parent;
+        }
+        cur->_left = parent;
+        parent->_parent = cur;
+    }
+
+    void RotateR(Node* parent) {
+        Node* pparent = parent->_parent;
+        Node* cur = parent->_left;
+        Node* rightChild = cur->_right;
+
+        //爷我
+        if (pparent) {
+            if (cur->_kv < pparent->_kv) {
+                pparent->_left = cur;
+                cur->_parent = pparent;
+            }
+            else {
+                pparent->_right = cur;
+                cur->_parent = pparent;
+            }
+        }
+        else {
+            cur->_parent = nullptr;
+            _root = cur;
+        }
+
+        //交换父子关系
+        cur->_right = parent;
+        parent->_parent = cur;
+
+        //托管
+        parent->_left = rightChild;
+        if (rightChild) {
+            rightChild->_parent = parent;
+        }
+    }
+
+    void InOrder() {
+        _InOrder(_root);
+        std::cout << std::endl;
+    }
+private:
+    void _InOrder(Node* root) {
+        if (root == nullptr) {
+            return;
+        }
+        _InOrder(root->_left);
+        std::cout << root->_kv.first << " ";
+        _InOrder(root->_right);
+    }
+
+private:
+    Node* _root;
+};
+```
+
