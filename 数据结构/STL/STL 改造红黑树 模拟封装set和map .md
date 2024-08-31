@@ -14,7 +14,7 @@
 
 本篇主要特点在迭代器适配上
 
-### 主体
+### 基本结构
 
 ```
 #pragma once
@@ -34,7 +34,8 @@ namespace test
 	enum Colour { RED, BLACK };
 	template<class T> struct RBTreeNode;
 	template<class T, class Ref, typename Ptr> struct __RBTree_iterator;
-	
+	template<class K, class T, class keyOfT> class RBTree;
+}
 ```
 
 
