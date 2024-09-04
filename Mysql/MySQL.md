@@ -509,6 +509,14 @@ show charset;
 
 
 
+## 表的结构
+
+​			列fields
+
+行records
+
+
+
 ## 库的操作
 
 ### 创建数据库
@@ -566,7 +574,7 @@ create database 数据库名 charset=utf8 collate utf8_general_ci;
 show databases;
 ```
 
-查看自己正在使用的是哪一个数据库
+#### 查看自己正在使用的是哪一个数据库
 
 ```
 select database();
@@ -619,6 +627,16 @@ use 数据库名;
 
 
 > use就像cd命令一样,需要使用某个目录(数据库)时,先cd进入这个目录 -- 库的行为与linux行为对应上
+
+
+
+### 查看当前使用的数据库
+
+```
+select database();
+```
+
+
 
 
 
@@ -679,3 +697,153 @@ mysql> show processlist;
 |  2 | root | localhost | test | Sleep   | 1386 |       | NULL             |
 |  3 | root | localhost | NULL | Query   |    0 | NULL  | show processlist | 
 +----+------+-----------+------+---------+------+-------+------------------+    
+
+
+
+## 表的操作
+
+### 建表
+
+语法
+
+```
+CREATE TABLE  `user1` (
+  `id` int(11) DEFAULT NULL COMMENT '用户id',
+  `name` varchar(32) DEFAULT NULL COMMENT '用户名',
+  `password` char(32) DEFAULT NULL COMMENT '定长密码',
+  `birthday` date DEFAULT NULL COMMENT '生日'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+```
+
+```
+CREATE TABLE if not exists `user2` (
+  `id` int(11) DEFAULT NULL COMMENT '用户id',
+  `name` varchar(32) DEFAULT NULL COMMENT '用户名',
+  `password` char(32) DEFAULT NULL COMMENT '定长密码',
+  `birthday` date DEFAULT NULL COMMENT '生日'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+```
+
+- comment:建表语句注释
+
+
+
+与linux对应操作
+
+```
+[root@gz d1]# ll
+total 128
+-rw-r----- 1 mysql mysql    61 Sep  4 11:14 db.opt
+-rw-r----- 1 mysql mysql  8697 Sep  4 11:19 user1.frm	//frm:表结构
+-rw-r----- 1 mysql mysql     0 Sep  4 11:19 user1.MYD	//D:data	MYISAM的数据文件
+-rw-r----- 1 mysql mysql  1024 Sep  4 11:19 user1.MYI	//I:index MYISAM的索引文件(数据与索引分开)
+-rw-r----- 1 mysql mysql  8697 Sep  4 11:17 user2.frm	//frm:表结构
+-rw-r----- 1 mysql mysql 98304 Sep  4 11:17 user2.ibd	//d:data 	InnoDB的数据文件(数据和索引一起)
+```
+
+
+
+### 查看数据库中的表
+
+```
+show tables;
+```
+
+
+
+### 查看表结构
+
+```
+desc 表名;			##description:描述
+```
+
+显示结构: 
+
+`| 字段 | 字段数据类型 | 是否允许为空 | 键/索引类型 | 缺省值 | 扩充 |`
+
+示例
+
+```
+mysql> desc user1;
++----------+-------------+------+-----+---------+-------+
+| Field    | Type        | Null | Key | Default | Extra |
++----------+-------------+------+-----+---------+-------+
+| id       | int(11)     | YES  |     | NULL    |       |
+| name     | varchar(32) | YES  |     | NULL    |       |
+| password | char(32)    | YES  |     | NULL    |       |
+| birthday | date        | YES  |     | NULL    |       |
++----------+-------------+------+-----+---------+-------+
+```
+
+
+
+### 查看表的创建信息
+
+```
+show create table 表名;
+```
+
+> 不一定和用户当时写的SQL一一对应,用户写的SQL会在MYSQL服务器词法语法分析器中重新解析、优化后执行,更加标准;因此返回的结果是标准SQL语句.
+
+
+
+### 修改表结构
+
+>  删除字段(列)只需要字段名,增加和修改操作还需要属性
+
+```
+增加列
+ALTER TABLE  tablename ADD (column datatype 字段属性...);
+
+修改列属性
+ALTER TABLE  tablename MODIfy (column datatype 字段属性...);
+
+删除列
+ALTER TABLE  tablename DROP (column);
+
+修改列名(相当于删除后添加,但是不会删除数据)
+ALTER TABLE  tablename 列名 change 新列名 (字段属性等完整定义...)
+```
+
+举例
+
+- 添加一列用于存放图片路径
+
+  ```
+  alter table user1 add image_path varchar(128) comment '图片路径' after birthday;	## 默认插入到最末;  after 列名 : 表示在哪列之后,
+  ```
+
+- 删除一列
+
+  ```
+  alter table user1 drop image_path;						# 只需要列名,该列所有数据也会被干掉
+  ```
+
+- 修改某列的属性
+
+  ```
+  alter table user1 modify name varchar(60); 		# 直接在字段后面加上属性,会覆盖掉所有旧属性
+  ```
+
+  ```
+  mysql> show create table user1 \G;
+  *************************** 1. row ***************************
+         Table: user1
+  Create Table: CREATE TABLE `user1` (
+    `id` int(11) DEFAULT NULL COMMENT '用户id',
+    `name` varchar(60) DEFAULT NULL,												### 覆盖式修改
+    `password` char(32) DEFAULT NULL COMMENT '定长密码',
+    `birthday` date DEFAULT NULL COMMENT '生日',
+    `image_path` varchar(128) DEFAULT NULL COMMENT '图片路径'
+  ) ENGINE=MyISAM DEFAULT CHARSET=utf8
+  1 row in set (0.00 sec)
+  ```
+
+  
+
+### 修改表名
+
+```
+alter table 表名 rename to 新表名;				## to可以省略
+```
+
