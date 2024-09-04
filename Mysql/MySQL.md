@@ -517,7 +517,7 @@ show charset;
 
 
 
-## 库的操作
+## 库的操作(DDL)
 
 ### 创建数据库
 
@@ -700,7 +700,7 @@ mysql> show processlist;
 
 
 
-## 表的操作
+## 表的操作(DDL)
 
 ### 建表
 
@@ -847,3 +847,24 @@ ALTER TABLE  tablename 列名 change 新列名 (字段属性等完整定义...)
 alter table 表名 rename to 新表名;				## to可以省略
 ```
 
+
+
+### 删除表
+
+```
+drop table 表名;
+```
+
+
+
+
+
+## 数据类型
+
+### 数据类型分类
+
+![image-20240904182030214](MySQL.assets/image-20240904182030214.png)
+
+### 数值类型
+
+![image-20240904182049293](MySQL.assets/image-20240904182049293.png)
