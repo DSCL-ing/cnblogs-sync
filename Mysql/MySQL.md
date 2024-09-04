@@ -568,6 +568,23 @@ create database 数据库名 charset=utf8 collate utf8_general_ci;
 
 
 
+注意:一般不支持指定存储引擎创建
+
+验证:
+
+```
+mysql> create database test_db charset=utf8 collate=utf8_general_ci;
+## 切换至linux
+[root@gz mysql]# cd test_db/
+[root@gz test_db]# ls
+db.opt
+[root@gz test_db]# cat db.opt
+default-character-set=utf8
+default-collation=utf8_general_ci
+```
+
+说明数据库默认只配置编码集和校验集
+
 ### 查看数据库
 
 ```
@@ -707,12 +724,12 @@ mysql> show processlist;
 语法
 
 ```
-CREATE TABLE  `user1` (
-  `id` int(11) DEFAULT NULL COMMENT '用户id',
-  `name` varchar(32) DEFAULT NULL COMMENT '用户名',
-  `password` char(32) DEFAULT NULL COMMENT '定长密码',
-  `birthday` date DEFAULT NULL COMMENT '生日'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+CREATE TABLE  user1 (
+  id int(11) COMMENT '用户id',
+  name varchar(32) COMMENT '用户名',
+  password char(32) COMMENT '定长密码',
+  birthday date COMMENT '生日'
+) ENGINE=MyISAM CHARSET=utf8;
 ```
 
 ```
@@ -726,6 +743,10 @@ CREATE TABLE if not exists `user2` (
 
 - comment:建表语句注释
 
+> 建表可以指定存储引擎,编码集,校验集
+>
+> 数据库是仓库(目录),表是货物(具体文件)
+
 
 
 与linux对应操作
@@ -733,7 +754,8 @@ CREATE TABLE if not exists `user2` (
 ```
 [root@gz d1]# ll
 total 128
--rw-r----- 1 mysql mysql    61 Sep  4 11:14 db.opt
+-rw-r----- 1 mysql mysql    61 Sep  4 11:14 db.opt		//数据库默认配置
+
 -rw-r----- 1 mysql mysql  8697 Sep  4 11:19 user1.frm	//frm:表结构
 -rw-r----- 1 mysql mysql     0 Sep  4 11:19 user1.MYD	//D:data	MYISAM的数据文件
 -rw-r----- 1 mysql mysql  1024 Sep  4 11:19 user1.MYI	//I:index MYISAM的索引文件(数据与索引分开)
@@ -868,3 +890,196 @@ drop table 表名;
 ### 数值类型
 
 ![image-20240904182049293](MySQL.assets/image-20240904182049293.png)
+
+- 数值类型+unsigned 就是无符号类型
+
+- mysql中类型与C/C++定义变量方式反过来
+
+  > C/C++:
+  >
+  > ​	unsigned int a;
+  >
+  > MySQL:
+  >
+  > ​	a int unsigned;
+
+- 为什么有这么多种类型: 在节省空间与满足应用场景之间的平衡
+
+### 以TINYINT认识整型族
+
+先建个简单的只有一个字段表
+
+```
+mysql> create database test_db charset=utf8 collate=utf8_general_ci engine=InnoDB;
+create table t1(num tinyint);
+
+mysql> desc t1;
++-------+------------+------+-----+---------+-------+
+| Field | Type       | Null | Key | Default | Extra |
++-------+------------+------+-----+---------+-------+
+| num   | tinyint(4) | YES  |     | NULL    |       |
++-------+------------+------+-----+---------+-------+
+1 row in set (0.00 sec)
+
+mysql> show create table t1\G;
+*************************** 1. row ***************************
+       Table: t1
+Create Table: CREATE TABLE `t1` (
+  `num` tinyint(4) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```
+
+> tinyint(4) 括号内数字后面说
+
+
+
+#### 有符号边界范围测试
+
+- 边界内能够正常插入
+
+```
+mysql> insert into t1(num) values(-128);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t1(num) values(127);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t1(num) values(0);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t1(num) values(-1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t1(num) values(1);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from t1;
++------+
+| num  |
++------+
+| -128 |
+|  127 |
+|    0 |
+|   -1 |
+|    1 |
++------+
+5 rows in set (0.00 sec)
+```
+
+- 边界外无法插入
+
+```
+mysql> insert into t1(num) values(-129);
+ERROR 1264 (22003): Out of range value for column 'num' at row 1
+mysql> insert into t1(num) values(128);
+ERROR 1264 (22003): Out of range value for column 'num' at row 1
+```
+
+
+
+#### 无符号边界测试
+
+建一个只有无符号tiny类型的表
+
+```
+mysql> create table t2(num tinyint unsigned);
+Query OK, 0 rows affected (0.02 sec)
+```
+
+
+
+- 范围内正常插入
+
+```
+mysql> insert into t2(num) values(0);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t2(num) values(1);
+Query OK, 1 row affected (0.00 sec)
+
+
+mysql> insert into t2(num) values(255);
+Query OK, 1 row affected (0.01 sec)
+```
+
+- 范围外不允许插入
+
+```
+mysql> insert into t2(num) values(256);
+ERROR 1264 (22003): Out of range value for column 'num' at row 1
+
+mysql> insert into t2(num) values(-1);
+ERROR 1264 (22003): Out of range value for column 'num' at row 1
+```
+
+
+
+#### 说明
+
+mysql中,所有数值类型数据范围不匹配时,mysql一般会直接拦截,不允许写入;
+
+反过来,已经存在mysql中的数据,一定是合法的;
+
+例如,修改表字段时,如果原有数据不满足新数据类型规则时,不允许进行修改
+
+```
+mysql> alter table t1 modify num tinyint unsigned;
+ERROR 1264 (22003): Out of range value for column 'num' at row 1
+mysql> alter table t2 modify num tinyint;
+ERROR 1264 (22003): Out of range value for column 'num' at row 3
+```
+
+这也说明,mysql中数据类型也是一种约束
+
+> 约束:约束程序员/使用者 尽可能正确的存取数据
+
+另外,尽量不使用unsigned，对于int类型可能存放不下的数据，int unsigned同样可能存放不下，与其如此，还不如设计时，将int类型提升为bigint类型。
+
+
+
+
+
+### BIT类型
+
+基本语法：
+
+```
+bit[(M)] : 比特位/位图。M表示位数，范围从1到64。如果M被忽略，默认为1。
+```
+
+用法举例:
+
+```
+mysql> create table t3(id int, online bit(1));
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> insert into t3(id,online) values(1,0);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t3(id,online) values(2,1);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into t3(id,online) values(3,2);
+ERROR 1406 (22001): Data too long for column 'online' at row 1
+
+mysql> select * from t3;		#### 字符回显是以ascii码表示的,此时online的值属于不回显字符;
++------+--------+
+| id   | online |
++------+--------+
+|    1 |        |
+|    2 |       |
++------+--------+
+2 rows in set (0.00 sec)
+
+mysql> select id,bin(online) from t3;
++------+-------------+
+| id   | bin(online) |
++------+-------------+
+|    1 | 0           |
+|    2 | 1           |
++------+-------------+
+2 rows in set (0.00 sec)
+```
+
+> 如何证明是ascii码,把bit调整更大(到10),然后插入'a',之后就能看到回显的'a'了;
