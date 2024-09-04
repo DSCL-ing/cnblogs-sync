@@ -292,6 +292,18 @@ mysql -h127.0.0.1 -P3306 -uroot		## -h 指定服务器ip -P指定端口号 ##不
 
 
 
+### 清屏命令
+
+```
+mysql> system clear;
+```
+
+
+
+
+
+
+
 ### 认识mysql 和 mysqld
 
 mysqld是网络服务一种,d表示daemon,守护进程;mysqld表示mysql数据库服务的服务器端
@@ -391,7 +403,70 @@ mysqld可以简单分为4层
 
 
 
-## 
+
+
+## help中文翻译
+
+```
+所有 MySQL 命令列表：
+请注意，所有的文本命令都必须在一行的开始位置，并且以 ';' 结束。
+
+? (\?) - `help` 的同义词。
+clear (\c) - 清除当前输入的语句。
+connect (\r) - 重新连接到服务器。可选参数包括数据库(db)和主机(host)。 
+delimiter (\d) - 设置语句分隔符。
+edit (\e) - 使用 $EDITOR 编辑命令。
+ego (\G) - 将命令发送到 MySQL 服务器，并垂直显示结果。
+exit (\q) - 退出 MySQL。与 quit 相同。
+go (\g) - 将命令发送到 MySQL 服务器。
+help (\h) - 显示此帮助信息。
+nopager (\n) - 禁用分页器，打印到标准输出。
+notee (\t) - 不写入输出文件。
+pager (\P) - 设置分页器 [to_pager]。通过分页器打印查询结果。
+print (\p) - 打印当前命令。
+prompt (\R) - 更改你的 MySQL 提示符。
+quit (\q) - 退出 MySQL。
+rehash (\#) - 重建补全哈希表。
+source (\.) - 执行一个 SQL 脚本文件。需要一个文件名作为参数。
+status (\s) - 从服务器获取状态信息。
+system (\!) - 执行一个系统 Shell 命令。
+tee (\T) - 设置输出文件 [to_outfile]。将所有内容附加到指定的输出文件。
+use (\u) - 使用另一个数据库。需要一个数据库名称作为参数。
+charset (\C) - 切换到另一个字符集。可能在处理多字节字符集的 binlog 时需要。
+warnings (\W) - 每个语句后显示警告。
+nowarning (\w) - 每个语句后不显示警告。
+resetconnection (\x) - 清理会话上下文。
+```
+
+
+
+#### 现学现用
+
+- `? 命令` 显示对应指令的帮助文档
+
+  例如 `? use`
+
+- `命令 \c` 当前输入命令作废
+
+- `命令 \G` 结果垂直显示,而不是以表格形式显示。
+
+- `system shell命令` 或 `\! shell命令 `  : 执行系统命令
+
+  常用: `system clear`
+
+- `status` 或 `\s` :显示服务器信息
+
+- `source` 或 `\.`: 执行sql
+
+- `connect [db_name [host]]` 重新连接到 `my_database` 数据库，连接主机为 `my_host`。
+
+  示例:`connect my_database my_host;`
+
+- `prompt [new_prompt]` 修改提示符的名字
+
+  示例:`prompt hello> ` 把提示符`mysql> `  改成了`hello> `
+
+
 
 ## 数据库的编码集与校验集
 
@@ -544,3 +619,63 @@ use 数据库名;
 
 
 > use就像cd命令一样,需要使用某个目录(数据库)时,先cd进入这个目录 -- 库的行为与linux行为对应上
+
+
+
+### 数据库备份与还原
+
+#### 备份
+
+- 备份整个数据库
+
+```
+mysqldump  -u root -p 密码 -B 数据库名 > 数据库备份存储的文件路径(一般是.sql文件,相对路径)
+```
+
+- 备份数据库其中的表
+
+```
+mysqldump -u root -p 数据库名 表名1 表名2  > ../mytest.sql		## 注意,不带-B了
+```
+> 如果备份一个数据库时，没有带上-B参数， 在恢复数据库时，需要先创建空数据库，然后使用数据 
+> 库，再使用source来还原。
+>
+> -B选项会备份数据库创建语法
+>
+> 
+
+
+
+- 备份多个数据库
+
+```
+mysqldump -u root -p -B 数据库名1  数据库名2 ... > 数据库存放路径
+```
+
+
+
+
+
+#### 还原
+
+- 还原
+
+```
+mysql> source 绝对路径
+```
+
+
+
+### 查看数据库连接数
+
+```
+show processlist;
+```
+
+mysql> show processlist; 
++----+------+-----------+------+---------+------+-------+------------------+
+| Id | User | Host      | db   | Command | Time | State | Info             | 
++----+------+-----------+------+---------+------+-------+------------------+
+|  2 | root | localhost | test | Sleep   | 1386 |       | NULL             |
+|  3 | root | localhost | NULL | Query   |    0 | NULL  | show processlist | 
++----+------+-----------+------+---------+------+-------+------------------+    
