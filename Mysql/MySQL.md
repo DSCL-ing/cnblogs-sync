@@ -1083,3 +1083,123 @@ mysql> select id,bin(online) from t3;
 ```
 
 > 如何证明是ascii码,把bit调整更大(到10),然后插入'a',之后就能看到回显的'a'了;
+
+
+
+### FLOAT类型
+
+> mysql中浮点类型是支持舍入进位的,但是各种浮点类型的舍入规则各不相同
+
+建一个小数精度为2,总有效长度为4的表
+
+```
+mysql> create table t4 (id int ,salary float(4,2))charset=utf8, collate=utf8_general_ci,engine=InnoDB;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> desc t4;
++--------+------------+------+-----+---------+-------+
+| Field  | Type       | Null | Key | Default | Extra |
++--------+------------+------+-----+---------+-------+
+| id     | int(11)    | YES  |     | NULL    |       |
+| salary | float(4,2) | YES  |     | NULL    |       |
++--------+------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+```
+
+
+
+
+
+- 常规插入
+
+```
+mysql> insert into t4 (id,salary) values(1,99.99);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(2,-99.99);
+Query OK, 1 row affected (0.01 sec)
+```
+
+
+
+- 错误插入
+
+```
+mysql> insert into t4 (id,salary) values(4,100.00);
+ERROR 1264 (22003): Out of range value for column 'salary' at row 1
+
+mysql> insert into t4 (id,salary) values(4,100.0);
+ERROR 1264 (22003): Out of range value for column 'salary' at row 1
+
+mysql> insert into t4 (id,salary) values(4,99.999);
+ERROR 1264 (22003): Out of range value for column 'salary' at row 1
+```
+
+
+
+- 占位插入
+
+```
+
+mysql> insert into t4 (id,salary) values(4,1.000);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(4,1.0000);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(4,1.00000);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(4,99.00000);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(4,099.00);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(4,000099.9900);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t4 (id,salary) values(4,10.0);
+Query OK, 1 row affected (0.00 sec)
+```
+
+
+
+- 舍入插入
+
+```
+mysql> insert into t4 values(3, 99.994);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into t4 values(3, 99.995);
+ERROR 1264 (22003): Out of range value for column 'salary' at row 1
+```
+
+> 舍入后,如果范围超过精度,则不允许插入;在精度范围内,则允许插入
+
+
+
+查看插入的数据
+
+```
+mysql> select * from t4;
++------+--------+
+| id   | salary |
++------+--------+
+|    1 |  99.99 |
+|    2 | -99.99 |
+|    4 |   1.00 |
+|    4 |   1.00 |
+|    4 |   1.00 |
+|    4 |  99.00 |
+|    4 |  99.00 |
+|    4 |  99.99 |
+|    4 |  10.00 |
+|    4 |   1.00 |
++------+--------+
+10 rows in set (0.00 sec)
+```
+
+
+
+说明: 约束有效数字范围不能超过指定范围. 无效数字是可以超过的,无效数字不保留,只保留有效数字部分; 不满足的小数部分会自动补齐
