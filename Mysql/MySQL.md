@@ -883,6 +883,8 @@ drop table 表名;
 
 ## 数据类型
 
+数据类型,也是一种约束
+
 ### 数据类型分类
 
 ![image-20240904182030214](MySQL.assets/image-20240904182030214.png)
@@ -1624,5 +1626,231 @@ mysql> select * from votes;
 |    1 | 男     | a,b,c,d,e |
 +------+--------+-----------+
 10 rows in set (0.00 sec)
+```
+
+
+
+### 集合查询函数 find_in_set
+
+先简单提一下一下MySQL函数,
+
+mysql具有函数执行功能,看一些例子
+
+```
+mysql> select 9*2;;
++-----+
+| 9*2 |
++-----+
+|  18 |
++-----+
+1 row in set (0.00 sec)
+
+ERROR:
+No query specified
+
+mysql> select 9/2;;
++--------+
+| 9/2    |
++--------+
+| 4.5000 |
++--------+
+1 row in set (0.00 sec)
+
+ERROR:
+No query specified
+
+mysql> select 9%2;;
++------+
+| 9%2  |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+```
+
+
+
+#### 举例`find_in_set`
+
+```
+mysql> select find_in_set("a","a,b,c");
++--------------------------+
+| find_in_set("a","a,b,c") |
++--------------------------+
+|                        1 |
++--------------------------+
+1 row in set (0.00 sec)
+
+mysql> select find_in_set("b","a,b,c");
++--------------------------+
+| find_in_set("b","a,b,c") |
++--------------------------+
+|                        2 |
++--------------------------+
+1 row in set (0.00 sec)
+
+mysql> select find_in_set("c","a,b,c");
++--------------------------+
+| find_in_set("c","a,b,c") |
++--------------------------+
+|                        3 |
++--------------------------+
+1 row in set (0.00 sec)
+
+mysql> select find_in_set("d","a,b,c");
++--------------------------+
+| find_in_set("d","a,b,c") |
++--------------------------+
+|                        0 |
++--------------------------+
+1 row in set (0.00 sec)
+
+mysql> select find_in_set("a,b","a,b,c");
++----------------------------+
+| find_in_set("a,b","a,b,c") |
++----------------------------+
+|                          0 |
++----------------------------+
+1 row in set (0.00 sec)
+```
+
+
+
+#### 语法
+
+```
+FIND_IN_SET(str, strlist) 
+```
+
+- `str` 是要查找的字符串。
+- `strlist` 是包含逗号分隔的字符串的列表。
+
+如果 `str` 在 `strlist` 中，FIND_IN_SET 返回 `str` 在 `strlist` 中的位置（从1开始计数）。如果 `str` 不在 `strlist` 中，则返回0。
+
+例如：
+
+```
+SELECT FIND_IN_SET('b','a,b,c,d');
+```
+
+将返回 `2`，因为 `'b'` 是列表 `'a,b,c,d'` 中的第二个元素。(从1开始,方便只要存在返回值都为真)
+
+注:该函数大小写不敏感，所以 `'B'` 和 `'b'` 会被认为是相同的。
+
+
+
+#### 在set中的应用
+
+
+
+表中有以下数据
+
+```
+mysql> select * from votes ;
++------+--------+-----------+
+| id   | gender | hobby     |
++------+--------+-----------+
+|    1 | 男     |           |
+|    1 | NULL   | NULL      |
+|    1 | 男     | a         |
+|    1 | 男     | b         |
+|    1 | 男     | a,b       |
+|    1 | 男     | c         |
+|    1 | 男     | a,c       |
+|    1 | 男     | e         |
+|    1 | 男     | a,e       |
+|    1 | 男     | a,b,c,d,e |
++------+--------+-----------+
+10 rows in set (0.00 sec)
+```
+
+
+
+查找存在有爱好a的记录/行
+
+```
+mysql> select * from votes where find_in_set('a',hobby);
++------+--------+-----------+
+| id   | gender | hobby     |
++------+--------+-----------+
+|    1 | 男     | a         |
+|    1 | 男     | a,b       |
+|    1 | 男     | a,c       |
+|    1 | 男     | a,e       |
+|    1 | 男     | a,b,c,d,e |
++------+--------+-----------+
+5 rows in set (0.00 sec)
+```
+
+查找存在爱好a和爱好b的记录
+
+```
+mysql> select * from votes where find_in_set('a',hobby) and find_in_set('b',hobby);
++------+--------+-----------+
+| id   | gender | hobby     |
++------+--------+-----------+
+|    1 | 男     | a,b       |
+|    1 | 男     | a,b,c,d,e |
++------+--------+-----------+
+2 rows in set (0.00 sec)
+```
+
+
+
+## 表的约束
+
+### 空属性
+
+空属性有两个值：null（默认的）和not null(不为空)
+
+
+
+数据库默认字段基本都是字段为空，但是实际开发时，尽可能保证字段不为空，因为数据为空没办法参与运算。
+
+```
+mysql> select null; 
++------+
+| NULL | 
++------+
+| NULL | 
++------+
+1 row in set (0.00 sec)
+
+mysql> select 1+null; 
++--------+
+| 1+null | 
++--------+
+|   NULL | 
++--------+
+1 row in set (0.00 sec)
+```
+
+
+
+
+
+#### 非空约束（NOT NULL Constraint）
+
+- 定义
+
+非空约束是数据库中的一种约束，用于确保某个字段在创建记录时必须有值，不能为空。在MySQL中，这通常通过`NOT NULL`约束来实现。
+
+- 用法
+
+在创建或修改表结构时，可以在字段定义后添加`NOT NULL`约束来指定该字段不能为空。
+
+```
+mysql> create table myclass(
+    -> class_name varchar(20) not null,
+    -> class_room varchar(10) not null); 
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> desc myclass; 
++------------+-------------+------+-----+---------+-------+ 
+| Field      | Type        | Null | Key | Default | Extra | 
++------------+-------------+------+-----+---------+-------+ 
+| class_name | varchar(20) | NO   |     | NULL    |       | 
+| class_room | varchar(10) | NO   |     | NULL    |       | 
++------------+-------------+------+-----+---------+-------+
 ```
 
