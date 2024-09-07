@@ -1854,3 +1854,419 @@ mysql> desc myclass;
 +------------+-------------+------+-----+---------+-------+
 ```
 
+
+
+### 默认值
+
+
+
+#### 定义
+
+在MySQL中，默认值（Default Value）是指为表中的列指定的一个特定值，当在插入记录时该列没有提供值时，将自动使用此默认值。默认值可以是数字、字符串、日期或时间等数据类型，具体取决于列的数据类型。
+
+#### 用途
+
+1. ‌**简化数据输入**‌：通过为常见或默认值已知的列设置默认值，可以减少在插入记录时需要指定的字段数量。
+2. ‌**保证数据一致性**‌：对于某些列，可能有一个公认或期望的默认值。通过为这些列设置默认值，可以确保在没有明确指定值时，数据库中的数据仍然保持一致。
+3. ‌**避免NULL值**‌：在某些情况下，NULL值可能不是最佳选择，因为它们可能表示未知或缺失的数据。通过设置默认值，可以避免在不需要NULL值的情况下使用它们。
+
+#### 语法
+
+```
+mysql> create table t1(
+			 name varchar(30) not null, 
+			 age tinyint unsigned default 18, 
+	  	 gender char(1) not null default '男'
+			 );
+			 
+mysql> desc t1;
++--------+---------------------+------+-----+---------+-------+
+| Field  | Type                | Null | Key | Default | Extra |
++--------+---------------------+------+-----+---------+-------+
+| name   | varchar(30)         | NO   |     | NULL    |       |
+| age    | tinyint(3) unsigned | YES  |     | 18      |       |
+| gender | char(1)             | NO   |     | 男      |       |
++--------+---------------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
+```
+
+
+
+
+
+#### 演示
+
+- 基本用法
+
+```
+mysql> insert into t1(name) values(1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from t1;
++------+------+--------+
+| name | age  | gender |
++------+------+--------+
+| 1    |   18 | 男     |
++------+------+--------+
+1 row in set (0.00 sec)
+```
+
+
+
+- 有缺省值,允许为空时
+
+```
+mysql> insert into t1(name,age,gender) values(2,NULL,'男');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from t1;
++------+------+--------+
+| name | age  | gender |
++------+------+--------+
+| 1    |   18 | 男     |
+| 2    | NULL | 男     |
++------+------+--------+
+2 rows in set (0.00 sec)
+```
+
+可以主动设置为NULL
+
+
+
+- name约束不允许为空,没有设置缺省值
+
+插入空:
+
+```
+mysql> insert into t1(name, age,gender) values(NULL,19,'女');
+ERROR 1048 (23000): Column 'name' cannot be null
+```
+
+不插入:
+
+```
+mysql> insert into t1(age,gender) values(19,'女');
+ERROR 1364 (HY000): Field 'name' doesn't have a default value
+```
+
+再看插入一个没有手动设置约束的,
+
+```
+mysql> alter table t1 add other varchar(10);
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> show create table t1 \G;
+*************************** 1. row ***************************
+       Table: t1
+Create Table: CREATE TABLE `t1` (
+  `name` varchar(30) NOT NULL,											## 没有默认值
+  `age` tinyint(3) unsigned DEFAULT '18',
+  `gender` char(1) NOT NULL DEFAULT '男',
+  `other` varchar(10) DEFAULT NULL									## 自动生成默认值为NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```
+
+说明: 
+
+1. 手动设置约束后,不会再自动生成默认值(新覆盖旧)
+
+2. 如果没有显式插入某字段,则用的是缺省值,但如果该字段没有设置缺省值,则会报错(无法插入).
+
+
+
+
+
+### 列描述：comment
+
+**没有实际含义**，专门用来描述字段，保存在表创建语句中，用来给程序员或DBA来进行了解,相当于一种**软性约束**(给人看的,让人觉得应该怎么做,不该怎么做,感性约束)。
+
+
+
+```
+show create table 表名;									# desc看不见,只能通过show create查看
+```
+
+
+
+### zerofill
+
+
+
+使用int类型时,发现int后面带了一个括号和数字int(N)
+
+```
+mysql> desc t2;
++-------+---------+------+-----+---------+-------+
+| Field | Type    | Null | Key | Default | Extra |
++-------+---------+------+-----+---------+-------+
+| id    | int(11) | YES  |     | NULL    |       |
++-------+---------+------+-----+---------+-------+
+1 row in set (0.01 sec)
+```
+
+这个数字就是zerofill属性的值,不过默认是没有设置zerofill的,没有设置zerofill时是无效的.
+
+
+
+#### 语法:
+
+ `列 int(N) zerofill` ;
+
+```
+mysql> alter table t2 modify id int zerofill;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> desc t2;
++-------+---------------------------+------+-----+---------+-------+
+| Field | Type                      | Null | Key | Default | Extra |
++-------+---------------------------+------+-----+---------+-------+
+| id    | int(10) unsigned zerofill | YES  |     | NULL    |       |
++-------+---------------------------+------+-----+---------+-------+
+1 row in set (0.00 sec)
+```
+
+
+
+#### 效果
+
+```
+mysql> select * from t2;
++------------+
+| id         |
++------------+
+| 0000000001 |
+| 0000000011 |
+| 0000000111 |
++------------+
+3 rows in set (0.00 sec)
+```
+
+可以发现括号内数字就是id的占位个数,占了11个位;其次,0会填充实际数值不够占位的位,缺多少填充多少
+
+
+
+- 如果N小于数据的位数
+
+```
+mysql> delete from t2 ;
+Query OK, 3 rows affected (0.00 sec)
+
+
+mysql> alter table t2 modify id int(4) zerofill;
+Query OK, 0 rows affected (0.00 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> insert into t2 values(1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t2 values(11);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t2 values(111);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t2 values(1111);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t2 values(11111);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into t2 values(111111);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t2 values(1111111);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from t2;
++---------+
+| id      |
++---------+
+|    0001 |
+|    0011 |
+|    0111 |
+|    1111 |
+|   11111 |
+|  111111 |
+| 1111111 |
++---------+
+7 rows in set (0.00 sec)
+```
+
+够N则没有动作,小于N位会补上足够的0,是一种"**不够才会发生**"的行为
+
+
+
+- 说明: zerofill不会影响数据的原始类型,只是在显示时以0占位填充方式显示;
+
+
+
+- 默认生成的zerofile数字
+
+默认有符号int是11,无符号是10,因为int类类型的数据范围是40亿和20亿,十进制一共10个数字,所以无符号是10;而有符号还有一个要用于表示符号,因此有符号是11.
+
+
+
+### 主键 primary key
+
+用来唯一的约束该字段里面的数据，**不能重复**，**不能为空**，一张表中最多**只能有一个主键**(唯一标识)；
+
+主键所在的列通常是整数类型。
+
+
+
+#### 语法
+
+```
+mysql> create table if not exists test_key(id int primary key comment '主键', name varchar(128));
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> desc test_key;
++-------+--------------+------+-----+---------+-------+
+| Field | Type         | Null | Key | Default | Extra |
++-------+--------------+------+-----+---------+-------+
+| id    | int(11)      | NO   | PRI | NULL    |       |
+| name  | varchar(128) | YES  |     | NULL    |       |
++-------+--------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+```
+
+表结构中 key列多了 **PRI** 属性
+
+
+
+查看标准定义语句
+
+```
+mysql> show create table test_key\G;
+*************************** 1. row ***************************
+       Table: test_key
+Create Table: CREATE TABLE `test_key` (
+  `id` int(11) NOT NULL COMMENT '主键',									##  自动加上了not null
+  `name` varchar(128) DEFAULT NULL,
+  PRIMARY KEY (`id`)																		## 主键在字段下方定义了
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```
+
+
+
+因此也可以这样定义
+
+```
+mysql> create table test(id int, primary key(id));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> desc test;
++-------+---------+------+-----+---------+-------+
+| Field | Type    | Null | Key | Default | Extra |
++-------+---------+------+-----+---------+-------+
+| id    | int(11) | NO   | PRI | NULL    |       |
++-------+---------+------+-----+---------+-------+
+1 row in set (0.00 sec)
+```
+
+
+
+
+
+#### 基本效果
+
+唯一标识,不能重复
+
+```
+mysql> insert into test_key values(1,'zhang');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into test_key values(1,'li');
+ERROR 1062 (23000): Duplicate entry '1' for key 'PRIMARY'
+```
+
+
+
+#### 删除主键
+
+```
+mysql> alter table test drop primary key;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> desc test;
++-------+---------+------+-----+---------+-------+
+| Field | Type    | Null | Key | Default | Extra |
++-------+---------+------+-----+---------+-------+
+| id    | int(11) | NO   |     | NULL    |       |
++-------+---------+------+-----+---------+-------+
+1 row in set (0.00 sec)
+```
+
+
+
+#### 追加主键
+
+```
+mysql> alter table test add primary key(id);
+Query OK, 0 rows affected (0.03 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> desc test;
++-------+---------+------+-----+---------+-------+
+| Field | Type    | Null | Key | Default | Extra |
++-------+---------+------+-----+---------+-------+
+| id    | int(11) | NO   | PRI | NULL    |       |
++-------+---------+------+-----+---------+-------+
+1 row in set (0.00 sec)
+```
+
+
+
+注意,添加主键时,需要先保证该字段没有重复的数据出现(因此最好是在 建表前/插入数据前 把主键确定下来)
+
+```
+mysql> alter table test drop primary key;												## 先删除主键
+Query OK, 0 rows affected (0.33 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> insert into test values(1);															## 插入两个重复数据
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into test values(1);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> alter table test add primary key(id);
+ERROR 1062 (23000): Duplicate entry '1' for key 'PRIMARY'				## 添加主键
+
+## 翻译: 重复 条目 1 对于主键
+```
+
+
+
+#### 复合主键
+
+主键不仅仅能设置一个字段,还能多个字段构成一个主键
+
+##### 语法
+
+复合主键只能使用单独定义主键的方式定义
+
+```
+mysql> create table pick_course(													## 选课表(测试用,不一定符合实际业务)
+	sid int unsigned comment '学生学号', 
+	cid int unsigned comment'课程号', 
+	score tinyint unsigned, primary key(sid,cid)
+	);
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> desc pick_course;
++-------+---------------------+------+-----+---------+-------+
+| Field | Type                | Null | Key | Default | Extra |
++-------+---------------------+------+-----+---------+-------+
+| sid   | int(10) unsigned    | NO   | PRI | NULL    |       |
+| cid   | int(10) unsigned    | NO   | PRI | NULL    |       |
+| score | tinyint(3) unsigned | YES  |     | NULL    |       |
++-------+---------------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
+```
+
+这种两个以上主键标识的就是复合主键
