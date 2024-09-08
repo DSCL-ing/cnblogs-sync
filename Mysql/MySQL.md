@@ -2269,4 +2269,316 @@ mysql> desc pick_course;
 3 rows in set (0.00 sec)
 ```
 
-这种两个以上主键标识的就是复合主键
+这种两个以上主键标识的就是复合主键,复合主键的性质和一般主键是一样的,保证列复合结果不重复即可
+
+
+
+### 自增长 auto_increment
+
+auto_increment：当对应的字段，不给值，会自动的被系统触发，系统会从当前字段中**已经有的最大值** 
++1操作，得到一个新的不同的值。要**搭配主键**使用，作为逻辑主键。
+
+自增长的特点: 
+
+1. 任何一个字段要做自增长，前提是本身是一个索引（key一栏有值）
+2. 自增长字段必须是整数 
+3. 一张表最多**只能有一个自增长**
+4. 默认从1开始
+
+
+
+基本语法
+
+```
+mysql> create table t3(id int auto_increment, name varchar(32), primary key(id)  );
+Query OK, 0 rows affected (0.01 sec)
+```
+
+
+
+
+
+#### 验证自增长属性的特点
+
+##### 自增长基准值变化
+
+建个带自增长属性的表
+
+```
+mysql> create table t3(id int auto_increment, name varchar(32), primary key(id)  );
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> show create table t3\G;
+*************************** 1. row ***************************
+       Table: t3
+Create Table: CREATE TABLE `t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```
+
+
+
+给表添加两个数据,全列插入
+
+```
+mysql> insert into t3 (id,name) values(10,'a');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t3 (id,name) values(1,'a');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from t3;
++----+------+
+| id | name |
++----+------+
+|  1 | a    |
+| 10 | a    |
++----+------+
+2 rows in set (0.00 sec)
+```
+
+此时查看表的结构
+
+```
+mysql> show create table t3\G;
+*************************** 1. row ***************************
+       Table: t3
+Create Table: CREATE TABLE `t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8		## 多了一个属性 auto_increment=11
+1 row in set (0.00 sec)
+```
+
+
+
+
+
+再插入一个数据,只对name插入,让id自增长
+
+```
+mysql> insert into t3 (name) values('b');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from t3;
++----+------+
+| id | name |
++----+------+
+|  1 | a    |
+| 10 | a    |
+| 11 | b    |
++----+------+
+3 rows in set (0.00 sec)
+
+mysql> show create table t3\G;
+*************************** 1. row ***************************
+       Table: t3
+Create Table: CREATE TABLE `t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```
+
+
+
+插入一个比较小的数据,全列插入
+
+```
+mysql> insert into t3 values(2,'c');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from t3 ;
++----+------+
+| id | name |
++----+------+
+|  1 | a    |
+|  2 | c    |
+| 10 | a    |
+| 11 | b    |
++----+------+
+4 rows in set (0.00 sec)
+
+mysql> show create table t3\G;
+*************************** 1. row ***************************
+       Table: t3
+Create Table: CREATE TABLE `t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8				## 自增长属性不变
+1 row in set (0.00 sec)
+```
+
+自增长属性没有发生变化,因此,自增长值是一个max()值,有比他大的就能覆盖,否则不变或自增
+
+
+
+- 删除最大元素也不会影响到自增长值
+
+```
+mysql> delete from t3 where id=11;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> show create table t3\G;
+*************************** 1. row ***************************
+       Table: t3
+Create Table: CREATE TABLE `t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8				## 自增长属性不变
+1 row in set (0.00 sec)
+```
+
+
+
+##### 搭配主键
+
+```
+mysql> create table t5 (id int auto_increment);
+ERROR 1075 (42000): Incorrect table definition; there can be only one auto column and it must be defined as a key
+## 不正确的表定义; (指代)只能有(只能只有)一个自动列;且必须定义成主键之类的
+```
+
+
+
+
+
+
+
+#### 语法
+
+1. 默认,不指定缺省值创建
+
+```
+mysql> create table t3(
+	id int auto_increment, 
+	name varchar(32), 
+	primary key(id)
+	);
+Query OK, 0 rows affected (0.01 sec)
+```
+
+2. 带自增长缺省值创建(注意写在列定义结束之后)
+
+```
+mysql> create table t4(
+	id int primary key  auto_increment,
+	name varchar(32)
+	)auto_increment=50;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> show create table t4\G;
+*************************** 1. row ***************************
+       Table: t4
+Create Table: CREATE TABLE `t4` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```
+
+
+
+#### 函数last_insert_id()
+
+在插入后获取上次插入的值（批量插入获取的是第一个值）;
+
+搭配auto_increment时,得到的就是自增长的值
+
+```
+mysql > select last_insert_id(); 
++------------------+
+| last_insert_id() | 
++------------------+
+|                1 | 
++------------------+
+```
+
+后续用例补充...
+
+
+
+#### 浅谈索引
+
+索引： 
+    在关系数据库中，索引是一种单独的、物理的对数据库表中一列或多列的值进行排序的一种存储结构，它是某个表中一列或若干列值的集合和相应的指向表中物理标识这些值的数据页的逻辑指针清单。 
+索引的作用相当于图书的目录，可以根据目录中的页码快速找到所需的内容。
+    索引提供指向存储在表的指定列中的数据值的指针，然后根据您指定的排序顺序对这些指针排序。 
+数据库使用索引以找到特定值，然后顺指针找到包含该值的行。这样可以使对应于表的SQL语句执行得 
+更快，可快速访问数据库表中的特定信息。
+
+
+
+### 唯一键
+
+一张表中有往往有很多字段需要唯一性，数据不能重复，但是一张表中只能有一个主键：唯一键就可以解决表中有多个字段需要唯一性约束的问题。
+
+唯一键的本质和主键差不多，唯一键允许为空，而且可以多个为空，空字段不做唯一性比较。 
+
+
+
+#### 理解唯一键
+
+1. 面向对象思想中,表的字段等价于对象的属性(表的各类属性 == 对象的属性), 描述表就相当于描述对象
+
+2. 对象有众多属性,而众多属性中一定存在相当一部分是唯一的,这些唯一的属性就是表的唯一键;
+
+   对于主键,用于标识一个对象(表),选择主键就是在众多唯一属性中选择一个作为主键;(这个唯一属性就是唯一键)
+
+
+
+#### 与主键的差异
+
+区别:唯一键可以为空(默认),也可以设置为非空(这样就和主键很像了)
+
+**关于唯一键和主键的区别：** 
+我们可以简单理解成，主键更多的是标识唯一性的。而唯一键更多的是保证在业务上，不要和别的信息出现重复。乍一听好像没啥区别
+
+举一个例子
+
+>假设一个场景
+>比如在公司，我们需要一个员工管理系统，系统中有一个员工表，员工表中有两列信息，一个身份证号码，一个是员工工号，我们可以选择身份号码作为主键。
+>
+>而我们设计员工工号的时候，需要一种约束：而所有的员工工号都不能重复。
+>
+>具体指的是在公司的业务上不能重复，我们设计表的时候，需要这个约束，那么就可以将员工工号设计成为唯一键。
+>
+>一般而言，我们**建议将主键设计成为和当前业务无关的字段**，这样，当业务调整的时候，我们可以尽量不会对主键做过大的调整。
+
+
+
+#### 语法
+
+```
+mysql> create table t6(id int unique);
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> create table t7(id int, unique(id));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table t8(id int unique key);
+Query OK, 0 rows affected (0.02 sec)
+```
+
+```
+mysql> show create table t6\G;
+*************************** 1. row ***************************
+       Table: t6
+Create Table: CREATE TABLE `t6` (
+  `id` int(11) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+
+ERROR:
+No query specified
+```
+
