@@ -2108,7 +2108,7 @@ mysql> select * from t2;
 
 
 
-### 主键 primary key
+### 主键 (primary key)
 
 用来唯一的约束该字段里面的数据，**不能重复**，**不能为空**，一张表中最多**只能有一个主键**(唯一标识)；
 
@@ -2517,7 +2517,7 @@ mysql > select last_insert_id();
 
 
 
-### 唯一键
+### 唯一键 (unique key)
 
 一张表中有往往有很多字段需要唯一性，数据不能重复，但是一张表中只能有一个主键：唯一键就可以解决表中有多个字段需要唯一性约束的问题。
 
@@ -2580,5 +2580,118 @@ Create Table: CREATE TABLE `t6` (
 
 ERROR:
 No query specified
+```
+
+
+
+### 外键（Foreign Key）
+
+外键外腱,和动物跟腱一样,系联不同对象的跟腱
+
+表与表之间的关联 表与表之间的约束
+
+‌
+
+‌**定义**‌：
+外键是数据库中的一个字段，它是另一个表的主键的引用。外键用于在两个表之间建立和维护引用完整性。它确保了表中的数据与另一个表中的数据相关联，并且保持一致性和准确性。
+
+‌**作用**‌：
+
+1. ‌**维护数据一致性**‌：通过外键约束，可以确保一个表中的数据引用另一个表的数据时，引用的数据是存在且有效的。这有助于防止无效或孤立的数据记录。
+2. ‌**实现数据表之间的关联**‌：外键使得数据库中的表能够相互关联，从而支持更复杂的查询和操作，如连接查询（JOIN）。
+3. ‌**支持级联操作**‌：外键约束还支持级联操作，如级联更新和级联删除。当对一个表的主键进行更新或删除时，可以自动地更新或删除另一个表中所有引用该主键的外键记录。
+
+‌**重要性**‌：
+
+外键是数据库设计中不可或缺的一部分，它们帮助开发者构建和维护数据库的完整性和一致性。通过外键，我们可以确保数据的准确性，防止数据冗余，并优化数据库的查询性能。此外，外键还有助于实现数据库表之间的逻辑关系，使得数据库的结构更加清晰和易于理解。
+
+
+
+#### 主表与从表
+
+‌**主表（Parent Table）**‌：
+在数据库中，主表通常包含其他表所引用的主键。换句话说，如果一个表的主键被其他表的外键所引用，那么这个表就被称为主表。主表在数据库关系中扮演着核心的角色，因为它包含了其他表可能需要的参照数据。
+
+‌**从表（Child Table 或 Dependent Table）**‌：
+从表，也称为子表或依赖表，是包含外键的表。外键是指向另一个表（即主表）主键的字段。从表通过外键与主表建立关联，从而实现数据的引用和完整性约束。
+
+
+
+‌**示例**‌：
+
+假设我们有两个表：`students`（学生表）和`courses`（课程表）。`students`表有一个`student_id`作为主键，而`courses`表有一个`course_id`作为主键。如果我们想要记录每个学生选修的课程，我们可以在`courses`表中添加一个`student_id`作为外键，它引用了`students`表的`student_id`主键。
+
+其中`students`表就是主表,`courses`是从表;因为`courses`表引用了`students`表的主键;
+
+
+
+#### 语法
+
+以学生信息,班级信息,以及学生-班级的关系为例,
+
+首先需要有一张主表(class)
+
+```
+mysql> create table class(id tinyint unsigned primary key, name varchar(32) unique key);
+Query OK, 0 rows affected (0.02 sec)
+```
+
+
+
+默认外键(自动生成外键名) -- 从表(student)
+
+```
+mysql> create table student(id char(12), name varchar(32), telphone varchar(32), class_id tinyint unsigned,primary key(id),unique key(telphone),foreign key(class_id) references class (id));
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> show create table student\G;
+*************************** 1. row ***************************
+       Table: student
+Create Table: CREATE TABLE `student` (
+  `id` char(12) NOT NULL,
+  `name` varchar(32) DEFAULT NULL,
+  `telphone` varchar(32) DEFAULT NULL,
+  `class_id` tinyint(3) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `telphone` (`telphone`),
+  KEY `class_id` (`class_id`),
+  CONSTRAINT `student_ibfk_1` FOREIGN KEY (`class_id`) REFERENCES `class` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+
+ERROR:
+No query specified
+```
+
+
+
+自定义外键名
+
+```
+mysql> create table student(
+	id char(12), 
+	name varchar(32), 
+	telphone varchar(32), 
+	class_id tinyint unsigned,
+	primary key(id),
+	unique key(telphone),
+	constraint my_foreign_key_name foreign key(class_id) references class (id)
+	);
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> show create table student\G;
+*************************** 1. row ***************************
+       Table: student
+Create Table: CREATE TABLE `student` (
+  `id` char(12) NOT NULL,
+  `name` varchar(32) DEFAULT NULL,
+  `telphone` varchar(32) DEFAULT NULL,
+  `class_id` tinyint(3) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `telphone` (`telphone`),
+  KEY `my_foreign_key_name` (`class_id`),
+  CONSTRAINT `my_foreign_key_name` FOREIGN KEY (`class_id`) REFERENCES `class` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
 ```
 
