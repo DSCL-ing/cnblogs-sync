@@ -1,6 +1,10 @@
 [toc]
 
-## 前言
+
+
+## MySQL卸载
+
+### 环境
 
 在安装前,为了减少相关因素影响,建议先卸载干净后再安装;
 
@@ -10,9 +14,8 @@
 
 安装版本 MySQL 5.7
 
-## MySQL卸载
-
 ### 查看是否已安装MySQL
+
 查看正在运行的进程,如果存在可以先kill掉
 ```
 ps axj|grep mysql
@@ -230,7 +233,7 @@ quit
 
 ### 免密登录配置
 
-在不知道密码时,网上有多种登录方式,目前只介绍免密登录配置.
+在不知道密码时,网上有多种登录方式,当前介绍免密登录配置.
 
 在/etc/my.cnf文件中追加以下命令即可.
 
@@ -246,7 +249,27 @@ systemctl restart mysqld 	##或者分两步走,先stop再start
 
 然后再次登录mysql,密码处直接回车即可
 
+能够登录之后,再进行修改密码,修改密码方式有很多种,不过当前是处于`kip-grant-tables`下,常规方式不允许,可以直接通过修改user表进行修改密码;下面语句暂时用着即可
 
+```
+#安全强度，默认为中，即1，要求必须包含 数字、符号、⼤⼩写字⺟，⻓度⾄少为8位 
+mysql> set global validate_password_policy=0;		## 设置为弱密码强度
+
+set global validate_password_length=1;	## 设置密码最小长度
+
+update user set authentication_string=password('123456') where user='root';	##直接对数据进行操作
+或  ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
+
+flush privileges;	## 刷新权限
+```
+
+改完密码后就可以移除`skip-grant-tables`配置了
+
+> 更新版本的mysql可能root没有登陆密码,直接回车登录即可.
+>
+> 其他方式如历史记录查看mysql生成临时密码等(旧版本) :
+>
+> `sudo grep 'temporary password' /var/log/mysqld.log `
 
 ### my.cnf 其他配置项
 
@@ -2766,4 +2789,851 @@ create table if not exists purchase
     foreign key (goods_id) references goods(goods_id)
 );
 ```
+
+
+
+## 表的增删改查 
+
+CRUD : Create(创建), Retrieve(读取)，Update(更新)，Delete（删除）
+
+### Create 
+
+create == insert
+
+标准语法:
+
+```
+INSERT [INTO] table_name 
+    [(column [, column] ...)] 
+    VALUES (value_list) [, (value_list)] ... 
+    
+其中value_list: value, [, value] ...
+```
+
+案例:
+
+```
+-- 创建一张学生表
+CREATE TABLE students (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    sn INT NOT NULL UNIQUE COMMENT '学号',
+    name VARCHAR(20) NOT NULL, 
+    qq VARCHAR(20)
+);
+```
+
+
+
+#### 指定列插入
+
+```
+INSERT INTO students(id,sn,name,qq) VALUES (100, 10000, '唐三藏', NULL);
+Query OK, 1 row affected (0.02 sec)
+
+INSERT INTO students(id,sn,name,qq) VALUES (101, 10001, '孙悟空', '11111');
+Query OK, 1 row affected (0.02 sec)
+
+-- 查看插入结果
+SELECT * FROM students; 
++-----+-------+-----------+-------+
+| id  | sn    | name      | qq    | 
++-----+-------+-----------+-------+
+| 100 | 10000 | 唐三藏     | NULL  | 
+| 101 | 10001 | 孙悟空     | 11111 |
++-----+-------+-----------+-------+
+2 rows in set (0.00 sec)
+```
+
+
+
+#### 单行数据+全列插入
+
+全列插入时可以省略列名,表示每个列都插入
+
+```
+value_list 数量必须和定义表的列的数量及顺序一致
+
+INSERT INTO students VALUES (100, 10000, '唐三藏', NULL);
+Query OK, 1 row affected (0.02 sec)
+
+INSERT INTO students VALUES (101, 10001, '孙悟空', '11111');
+Query OK, 1 row affected (0.02 sec)
+
+-- 查看插入结果
+SELECT * FROM students; 
++-----+-------+-----------+-------+
+| id  | sn    | name      | qq    | 
++-----+-------+-----------+-------+
+| 100 | 10000 | 唐三藏     | NULL  | 
+| 101 | 10001 | 孙悟空     | 11111 |
++-----+-------+-----------+-------+
+2 rows in set (0.00 sec)
+```
+
+
+
+#### 多行数据+全列插入
+
+```
+INSERT INTO students (id, sn, name) VALUES 
+    (102, 20001, '曹孟德'), 
+    (103, 20002, '孙仲谋');
+Query OK, 2 rows affected (0.02 sec) 
+Records: 2  Duplicates: 0  Warnings: 0
+
+SELECT * FROM students; 
++-----+-------+-----------+-------+
+| id  | sn    | name      | qq    | 
++-----+-------+-----------+-------+
+| 100 | 10000 | 唐三藏     | NULL  | 
+| 101 | 10001 | 孙悟空     | 11111 | 
+| 102 | 20001 | 曹孟德     | NULL  | 
+| 103 | 20002 | 孙仲谋     | NULL  |
++-----+-------+-----------+-------+
+4 rows in set (0.00 sec)
+```
+
+
+
+#### 插入否则更新
+
+由于 **主键** 或者 **唯一键** 对应的值已经存在而导致插入失败
+
+```
+-- 主键冲突
+INSERT INTO students (id, sn, name) VALUES (100, 10010, '唐大师');
+ERROR 1062 (23000): Duplicate entry '100' for key 'PRIMARY'
+
+-- 唯一键冲突
+INSERT INTO students (sn, name) VALUES (20001, '曹阿瞒');
+ERROR 1062 (23000): Duplicate entry '20001' for key 'sn'
+```
+
+可以选择性的进行同步更新操作 
+
+标准语法：
+
+```
+INSERT ... ON DUPLICATE KEY UPDATE 
+    column = value [, column = value] ... 
+```
+
+案例
+
+```
+INSERT INTO students (id, sn, name) VALUES (100, 10010, '唐大师')
+    ON DUPLICATE KEY UPDATE sn = 10010, name = '唐大师';
+Query OK, 2 rows affected (0.47 sec)
+
+-- 0 row affected:      ### 表中有冲突数据，但冲突数据的值和 update 的值相等 
+-- 1 row affected:      ### 表中没有冲突数据，数据被插入
+-- 2 row affected:      ### 表中有冲突数据，并且数据已经被更新
+-- 通过 MySQL 函数获取受到影响的数据行数
+SELECT ROW_COUNT(); 
++-------------+
+| ROW_COUNT() | 
++-------------+
+|           2 | 
++-------------+
+1 row in set (0.00 sec)
+
+-- ON DUPLICATE KEY 当发生重复key的时候
+```
+
+
+
+#### 替换 (replace)
+
+```
+-- 主键 或者 唯一键 没有冲突，则直接插入； 
+-- 主键 或者 唯一键 如果冲突，则删除后再插入
+REPLACE INTO students (sn, name) VALUES (20001, '曹阿瞒');
+Query OK, 2 rows affected (0.00 sec)
+
+-- 1 row affected:      表中没有冲突数据，数据被插入 
+-- 2 row affected:      表中有冲突数据，删除后重新插入
+```
+
+
+
+
+
+### Retrieve 
+
+
+
+retrieve == query
+
+
+
+#### 标准语法
+
+```
+SELECT  
+ [DISTINCT] {* | {column [, column] ...} 
+ [FROM table_name] 
+ [WHERE ...] 
+ [ORDER BY column [ASC | DESC], ...] 
+ LIMIT ... 
+```
+
+
+
+案例:
+
+```
+-- 创建表结构 
+CREATE TABLE exam_result ( 
+ id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT, 
+ name VARCHAR(20) NOT NULL COMMENT '同学姓名', 
+ chinese float DEFAULT 0.0 COMMENT '语文成绩', 
+ math float DEFAULT 0.0 COMMENT '数学成绩', 
+ english float DEFAULT 0.0 COMMENT '英语成绩' 
+); 
+ 
+-- 插入测试数据 
+INSERT INTO exam_result (name, chinese, math, english) VALUES 
+ ('唐三藏', 67, 98, 56), 
+ ('孙悟空', 87, 78, 77), 
+ ('猪悟能', 88, 98, 90), 
+ ('曹孟德', 82, 84, 67), 
+ ('刘玄德', 55, 85, 45), 
+ ('孙权', 70, 73, 78), 
+ ('宋公明', 75, 65, 30); 
+Query OK, 7 rows affected (0.00 sec) 
+Records: 7  Duplicates: 0  Warnings: 0 
+```
+
+
+
+#### SELECT列
+
+> 查询结果返回表格,表现形式为笛卡尔积:详见数据库原理
+
+##### 全列查询
+
+```
+-- 通常情况下不建议使用 * 进行全列查询 
+-- 1. 查询的列越多，意味着需要传输的数据量越大； 
+-- 2. 可能会影响到索引的使用。（索引待后面课程讲解） 
+ 
+SELECT * FROM exam_result; 
++----+-----------+-------+--------+--------+ 
+| id | name      | chinese | math | english | 
++----+-----------+-------+--------+--------+ 
+|  1 | 唐三藏     |    67 |     98 |     56 | 
+|  2 | 孙悟空     |    87 |     78 |     77 | 
+|  3 | 猪悟能     |    88 |     98 |     90 | 
+|  4 | 曹孟德     |    82 |     84 |     67 | 
+|  5 | 刘玄德     |    55 |     85 |     45 | 
+|  6 | 孙权       |    70 |     73 |     78 | 
+|  7 | 宋公明     |    75 |     65 |     30 | 
++----+-----------+-------+--------+--------+ 
+7 rows in set (0.00 sec) 
+```
+
+
+
+##### 指定列查询
+
+```
+-- 指定列的顺序不需要按定义表的顺序来 
+ 
+SELECT id, name, english FROM exam_result; 
++----+-----------+--------+ 
+| id | name      | english | 
++----+-----------+--------+ 
+|  1 | 唐三藏     |     56 | 
+|  2 | 孙悟空     |     77 | 
+|  3 | 猪悟能     |     90 | 
+|  4 | 曹孟德     |     67 | 
+|  5 | 刘玄德     |     45 | 
+|  6 | 孙权       |     78 | 
+|  7 | 宋公明     |     30 | 
++----+-----------+--------+ 
+7 rows in set (0.00 sec) 
+```
+
+
+
+##### select 查询字段为表达式
+
+以下案例能够说明 select能够计算各种表达式
+
+- 常量表达式
+
+```
+mysql> select 10 from exam_result;
++----+
+| 10 |
++----+
+| 10 |
+| 10 |
+| 10 |
+| 10 |
+| 10 |
+| 10 |
+| 10 |
++----+
+7 rows in set (0.00 sec)
+```
+
+- 常量表达式**笛卡尔积**
+
+```
+mysql> select id,name,10 from exam_result;
++----+-----------+----+
+| id | name      | 10 |
++----+-----------+----+
+|  1 | 唐三藏    | 10 |
+|  2 | 孙悟空    | 10 |
+|  3 | 猪悟能    | 10 |
+|  4 | 曹孟德    | 10 |
+|  5 | 刘玄德    | 10 |
+|  6 | 孙权      | 10 |
+|  7 | 宋公明    | 10 |
++----+-----------+----+
+7 rows in set (0.00 sec)
+```
+
+- 基本数值运算
+
+```
+mysql> select id,name,1+1 from exam_result;
++----+-----------+-----+
+| id | name      | 1+1 |
++----+-----------+-----+
+|  1 | 唐三藏    |   2 |
+|  2 | 孙悟空    |   2 |
+|  3 | 猪悟能    |   2 |
+|  4 | 曹孟德    |   2 |
+|  5 | 刘玄德    |   2 |
+|  6 | 孙权      |   2 |
+|  7 | 宋公明    |   2 |
++----+-----------+-----+
+7 rows in set (0.00 sec)
+```
+
+- 能够计算1+1,则也能够计算字段值的运算
+
+```
+mysql> select id,name,math+100 from exam_result;
++----+-----------+----------+
+| id | name      | math+100 |
++----+-----------+----------+
+|  1 | 唐三藏    |      198 |
+|  2 | 孙悟空    |      178 |
+|  3 | 猪悟能    |      198 |
+|  4 | 曹孟德    |      184 |
+|  5 | 刘玄德    |      185 |
+|  6 | 孙权      |      173 |
+|  7 | 宋公明    |      165 |
++----+-----------+----------+
+7 rows in set (0.00 sec)
+```
+
+- 计算总成绩
+
+```
+mysql> select id,name,math+chinese+english from exam_result;
++----+-----------+----------------------+
+| id | name      | math+chinese+english |
++----+-----------+----------------------+
+|  1 | 唐三藏    |                  221 |
+|  2 | 孙悟空    |                  242 |
+|  3 | 猪悟能    |                  276 |
+|  4 | 曹孟德    |                  233 |
+|  5 | 刘玄德    |                  185 |
+|  6 | 孙权      |                  221 |
+|  7 | 宋公明    |                  170 |
++----+-----------+----------------------+
+7 rows in set (0.00 sec)
+```
+
+
+
+##### 表达式重命名
+
+如果计算成绩的综合,会发现表达式`math+chinese+english`的返回的结果表格中列名很长;可以使用`as`对表达式进行重命名.
+
+```
+mysql> select id,name,math+chinese+english as total from exam_result;
++----+-----------+-------+
+| id | name      | total |
++----+-----------+-------+
+|  1 | 唐三藏    |   221 |
+|  2 | 孙悟空    |   242 |
+|  3 | 猪悟能    |   276 |
+|  4 | 曹孟德    |   233 |
+|  5 | 刘玄德    |   185 |
+|  6 | 孙权      |   221 |
+|  7 | 宋公明    |   170 |
++----+-----------+-------+
+7 rows in set (0.00 sec)
+```
+
+
+
+还可以`省略as`
+
+```
+mysql> select id 编号,name 姓名,math+chinese+english total from exam_result;
++--------+-----------+-------+
+| 编号   | 姓名      | total |
++--------+-----------+-------+
+|      1 | 唐三藏    |   221 |
+|      2 | 孙悟空    |   242 |
+|      3 | 猪悟能    |   276 |
+|      4 | 曹孟德    |   233 |
+|      5 | 刘玄德    |   185 |
+|      6 | 孙权      |   221 |
+|      7 | 宋公明    |   170 |
++--------+-----------+-------+
+7 rows in set (0.00 sec)
+```
+
+
+
+##### 去重
+
+- 原数据:
+
+```
+mysql> select math from exam_result;
++------+
+| math |
++------+
+|   98 |
+|   78 |
+|   98 |
+|   84 |
+|   85 |
+|   73 |
+|   65 |
++------+
+7 rows in set (0.00 sec)
+```
+
+- 去重数据
+
+```
+mysql> select distinct math from exam_result;
++------+
+| math |
++------+
+|   98 |
+|   78 |
+|   84 |
+|   85 |
+|   73 |
+|   65 |
++------+
+6 rows in set (0.00 sec)
+```
+
+
+
+#### WHERE 条件
+
+> 相当于 if
+
+##### 比较运算符
+
+|运算符| 说明|
+|---|---|
+|>, >=, <, <= 			| 大于，大于等于，小于，小于等于|
+|= 									|等于，NULL 不安全，例如 NULL = NULL 的结果是 NULL|
+|<=> 								|等于，NULL 安全，例如 NULL <=> NULL 的结果是 TRUE(1)|
+|!=, <> 						|不等于|
+|between a0 AND a1 	|范围匹配，[a0, a1]，如果 a0 <= value <= a1，返回TRUE(1) |
+|IN (option, ...) 	|如果是 option 中的任意一个，返回 TRUE(1)|
+|IS NULL 						|是 NULL|
+|IS NOT NULL 				|不是 NULL|
+|LIKE 							|模糊匹配。% 表示任意多个（包括 0 个）任意字符；_ 表示任意一个字符|
+
+
+
+##### 逻辑运算符
+
+|运算符| 说明|
+|---|---|
+|AND		|多个条件必须都为 TRUE(1)，结果才是 TRUE(1); 逻辑与,相当于&& |
+|OR 	  |任意一个条件为 TRUE(1), 结果为 TRUE(1);     逻辑或,相当于\|\||
+|NOT 		|条件为 TRUE(1)，结果为 FALSE(0);            逻辑非,相当于 !|
+
+
+
+##### 案例:
+
+- 英语不及格的同学及英语成绩 ( < 60 ) 
+
+- 语文成绩在 [80, 90] 分的同学及语文成绩
+
+  ```
+  mysql> select chinese from exam_result where chinese>=60 and chinese<90;
+  +---------+
+  | chinese |
+  +---------+
+  |      67 |
+  |      87 |
+  |      88 |
+  |      82 |
+  |      70 |
+  |      75 |
+  +---------+
+  6 rows in set (0.00 sec)
+  ```
+	- between
+  ```
+  mysql> select chinese from exam_result where chinese between 60 and 89;
+  +---------+
+  | chinese |
+  +---------+
+  |      67 |
+  |      87 |
+  |      88 |
+  |      82 |
+  |      70 |
+  |      75 |
+  +---------+
+  6 rows in set (0.00 sec)
+  ```
+
+- 数学成绩是 58 或者 59 或者 98 或者 99 分的同学及数学成绩
+
+  ```
+  mysql> select name 姓名, math 数学 from exam_result WHERE math=58 or math=59 or math=98 or math=99;
+  +-----------+--------+
+  | 姓名      | 数学   |
+  +-----------+--------+
+  | 唐三藏    |     98 |
+  | 猪悟能    |     98 |
+  +-----------+--------+
+  2 rows in set (0.00 sec)
+  ```
+
+  - in
+
+  ```
+  mysql> select name 姓名, math 数学 from exam_result WHERE math in (58,59,98,99);
+  +-----------+--------+
+  | 姓名      | 数学   |
+  +-----------+--------+
+  | 唐三藏    |     98 |
+  | 猪悟能    |     98 |
+  +-----------+--------+
+  2 rows in set (0.00 sec)
+  ```
+
+  
+
+- 姓孙的同学 ; 孙X同学 (X为一个汉字)
+
+  ```
+  mysql> select name 姓名 FROM exam_result WHERE name  like "孙%" ;
+  +-----------+
+  | 姓名      |
+  +-----------+
+  | 孙悟空    |
+  | 孙权      |
+  +-----------+
+  2 rows in set (0.00 sec)
+  ```
+
+  ```
+  mysql> select name 姓名 FROM exam_result WHERE name  like "孙_" ;
+  +--------+
+  | 姓名   |
+  +--------+
+  | 孙权   |
+  +--------+
+  1 row in set (0.00 sec)
+  ```
+
+  
+
+- 语文成绩好于英语成绩的同学 
+
+  ```
+  mysql> SELECT chinese 语文, english 英语 FROM exam_result WHERE chinese > english;
+  +--------+--------+
+  | 语文   | 英语   |
+  +--------+--------+
+  |     67 |     56 |
+  |     87 |     77 |
+  |     82 |     67 |
+  |     55 |     45 |
+  |     75 |     30 |
+  +--------+--------+
+  5 rows in set (0.00 sec)
+  ```
+
+- 总分在 200 分以下的同学
+
+  ```
+  mysql> SELECT name 姓名, chinese+math+english total  FROM exam_result WHERE total<200;
+  ERROR 1054 (42S22): Unknown column 'total' in 'where clause'
+  mysql> SELECT name 姓名, chinese+math+english total  FROM exam_result WHERE chinese+math+english<200;
+  +-----------+-------+
+  | 姓名      | total |
+  +-----------+-------+
+  | 刘玄德    |   185 |
+  | 宋公明    |   170 |
+  +-----------+-------+
+  2 rows in set (0.00 sec)
+  ```
+
+  > - 不能使用别名计算,别名只在返回结果的列名生效;
+
+  ![image-20240910140853526](MySQL.assets/image-20240910140853526.png)
+
+- 语文成绩 > 80 并且不姓孙的同学
+
+  ```
+  mysql> SELECT name 姓名, chinese 语文  FROM exam_result WHERE name not like '孙%' and chinese>80;
+  +-----------+--------+
+  | 姓名      | 语文   |
+  +-----------+--------+
+  | 猪悟能    |     88 |
+  | 曹孟德    |     82 |
+  +-----------+--------+
+  2 rows in set (0.00 sec)
+  ```
+
+  
+
+- 孙X同学，否则要求总成绩 > 200 并且 语文成绩 < 数学成绩 并且 英语成绩 > 80 
+
+> 实际就是 孙X同学 或 总成绩 > 200 并且 语文成绩 < 数学成绩 并且 英语成绩 > 80
+
+```
+mysql> SELECT *,chinese+math+english total FROM exam_result WHERE name like '孙_' or (chinese+math+english>200 and chinese<math and english>80);
++----+-----------+---------+------+---------+-------+
+| id | name      | chinese | math | english | total |
++----+-----------+---------+------+---------+-------+
+|  3 | 猪悟能    |      88 |   98 |      90 |   276 |
+|  6 | 孙权      |      70 |   73 |      78 |   221 |
++----+-----------+---------+------+---------+-------+
+2 rows in set (0.00 sec)
+```
+
+
+
+
+
+## 用户
+
+### 用户管理
+
+mysql用户管理位于数据库mysql中的user表中
+
+```
+mysql> show tables;
++---------------------------+
+| Tables_in_mysql           |
++---------------------------+
+| columns_priv              |
+| db                        |
+| engine_cost               |
+| event                     |
+| func                      |
+| general_log               |
+| gtid_executed             |
+| help_category             |
+| help_keyword              |
+| help_relation             |
+| help_topic                |
+| innodb_index_stats        |
+| innodb_table_stats        |
+| ndb_binlog_index          |
+| plugin                    |
+| proc                      |
+| procs_priv                |
+| proxies_priv              |
+| server_cost               |
+| servers                   |
+| slave_master_info         |
+| slave_relay_log_info      |
+| slave_worker_info         |
+| slow_log                  |
+| tables_priv               |
+| time_zone                 |
+| time_zone_leap_second     |
+| time_zone_name            |
+| time_zone_transition      |
+| time_zone_transition_type |
+| user                      |
++---------------------------+
+31 rows in set (0.00 sec)
+```
+
+
+
+```
+mysql> select * from user\G;
+*************************** 1. row ***************************
+                  Host: localhost							## 允许的登录方式,localhost表示只允许本机登录
+                  User: root
+           Select_priv: Y
+           Insert_priv: Y
+           Update_priv: Y
+           Delete_priv: Y
+           Create_priv: Y
+             Drop_priv: Y
+           Reload_priv: Y
+         Shutdown_priv: Y
+          Process_priv: Y
+             File_priv: Y
+            Grant_priv: Y
+       References_priv: Y
+            Index_priv: Y
+            Alter_priv: Y
+          Show_db_priv: Y
+            Super_priv: Y
+ Create_tmp_table_priv: Y
+      Lock_tables_priv: Y
+          Execute_priv: Y
+       Repl_slave_priv: Y
+      Repl_client_priv: Y
+      Create_view_priv: Y
+        Show_view_priv: Y
+   Create_routine_priv: Y
+    Alter_routine_priv: Y
+      Create_user_priv: Y
+            Event_priv: Y
+          Trigger_priv: Y
+Create_tablespace_priv: Y
+              ssl_type:
+            ssl_cipher:
+           x509_issuer:
+          x509_subject:
+         max_questions: 0
+           max_updates: 0
+       max_connections: 0
+  max_user_connections: 0
+                plugin: mysql_native_password
+ authentication_string: *********************************2E128811		## 用户密码(经过password函数加密)
+      password_expired: Y
+ password_last_changed: 2024-02-28 22:08:19
+     password_lifetime: NULL
+        account_locked: N
+        
+### ....
+```
+
+因此有一种简单粗暴的用户管理方法就是像USER表中插入用户数据,不过需要插入很多字段如权限那些,太过于麻烦;一般都是使用MySQL提供的方法进行用户管理;
+
+
+
+一般查询所有用户
+
+```
+mysql> select user,host from user;
++---------------+-----------+
+| user          | host      |
++---------------+-----------+
+| mysql.session | localhost |
+| mysql.sys     | localhost |
+| root          | localhost |
++---------------+-----------+
+3 rows in set (0.00 sec)
+```
+
+
+
+查看当前用户
+
+```
+mysql> select user();
++--------+
+| user() |
++--------+
+| root@  |
++--------+
+1 row in set (0.00 sec)
+```
+
+
+
+
+
+### 创建用户
+
+语法
+
+```
+create user '用户名'@'ip' identified by '密码'; 
+```
+
+> 涉及密码的操作mysql都不会记录下来
+
+> 涉及权限的操作都需要刷新 ## flush privileges;
+
+- 仅限本地登录用户
+
+```
+create user '用户名'@'localhost' identified by '密码'; 
+```
+
+- 仅限特定ip登录(一般都是内网,除了学习使用外一般不建议公网)
+
+```
+create user '用户名'@'ip' identified by '密码'; 
+```
+
+- 所有用户可登录(危险)
+
+```
+create user '用户名'@'%' identified by '密码'; 
+```
+
+
+
+### 修改密码规则
+
+修改密码前可以修改密码规则
+
+```
+#安全强度，默认为中，即1，要求必须包含 数字、符号、⼤⼩写字⺟，⻓度⾄少为8位 
+mysql> set global validate_password_policy=0;		## 设置为弱密码强度
+
+set global validate_password_length=1;	## 设置密码最小长度
+```
+
+
+
+
+
+### 修改密码
+
+- 自己改自己
+
+```
+set password=password('新的密码');
+```
+
+- root改指定用户
+
+```
+set password for '用户名'@'主机名'=password('新的密码')；
+```
+
+- root直接对user表操作
+
+```
+update user set authentication_string=password('111') where user='chj';
+flush privileges;
+```
+
+或
+
+```
+ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
+
+flush privileges;	## 刷新权限
+```
+
+
+
+
 
