@@ -3525,7 +3525,7 @@ Create_tablespace_priv: Y
 
 
 
-一般查询所有用户
+#### 查询所有用户
 
 ```
 mysql> select user,host from user;
@@ -3541,7 +3541,7 @@ mysql> select user,host from user;
 
 
 
-查看当前用户
+#### 查看当前用户
 
 ```
 mysql> select user();
@@ -3555,6 +3555,21 @@ mysql> select user();
 
 
 
+#### 查看当前连接数
+
+```
+mysql> show processlist;
++----+------+----------------------+------+---------+------+----------+------------------+
+| Id | User | Host                 | db   | Command | Time | State    | Info             |
++----+------+----------------------+------+---------+------+----------+------------------+
+|  3 | root | localhost            | NULL | Query   |    0 | starting | show processlist |
+|  4 | chj  | *********            | NULL | Sleep   |    4 |          | NULL             |
++----+------+----------------------+------+---------+------+----------+------------------+
+2 rows in set (0.00 sec)
+```
+
+
+
 
 
 ### 创建用户
@@ -3563,6 +3578,7 @@ mysql> select user();
 
 ```
 create user '用户名'@'ip' identified by '密码'; 
+flush privileges;			## 刷新权限
 ```
 
 > 涉及密码的操作mysql都不会记录下来
@@ -3581,11 +3597,23 @@ create user '用户名'@'localhost' identified by '密码';
 create user '用户名'@'ip' identified by '密码'; 
 ```
 
-- 所有用户可登录(危险)
+- 所有用户可登录(危险,仅学习用,一般用户没有固定ip)
 
 ```
 create user '用户名'@'%' identified by '密码'; 
 ```
+
+
+
+### 删除用户
+
+语法:
+
+```
+drop user '用户名'@'主机名'
+```
+
+
 
 
 
@@ -3635,5 +3663,118 @@ flush privileges;	## 刷新权限
 
 
 
+## 权限
+
+### 数据库提供的 权限列表
+
+![image-20240911123237917](MySQL.assets/image-20240911123237917.png)
 
 
+
+
+
+### 查看权限
+
+```
+mysql> show grants for 'chj'@'%';
++--------------------------------------------------+
+| Grants for chj@%                                 |
++--------------------------------------------------+
+| GRANT USAGE ON *.* TO 'chj'@'%'                  |
+| GRANT ALL PRIVILEGES ON `test_db`.* TO 'chj'@'%' |
++--------------------------------------------------+
+2 rows in set (0.00 sec)
+```
+
+
+
+
+
+### 给用户授权
+
+语法:
+
+```
+grant 权限列表 on 库.对象名 to '用户名'@'登陆位置' [identified by '密码'] ;
+## identified by: 可选。 如果用户存在，赋予权限的同时修改密码,如果该用户不存在，就是创建用户
+## 密码一般忽略,因为一般都是先创建用户再授限,创建用户时密码已经设置好了;
+```
+
+案例:
+
+```
+grant select on ...
+
+grant select, delete, create on ....
+
+grant all  on ... -- 表示赋予该用户在该对象上的所有权限
+
+grant [privileges] on 库.*  to '用户名'@'登陆位置'
+## 库.* : 表示某个数据库中的所有数据对象(表，视图，存储过程等) 
+
+grant [privileges] on *.*   to '用户名'@'登陆位置'
+## *.*代表本系统中的所有数据库的所有对象（表，视图，存储过程等） 
+```
+
+
+
+````
+### 查看权限
+
+```
+mysql> show grants for 'chj'@'%';
++--------------------------------------------------+
+| Grants for chj@%                                 |
++--------------------------------------------------+
+| GRANT USAGE ON *.* TO 'chj'@'%'                  |
+| GRANT ALL PRIVILEGES ON `test_db`.* TO 'chj'@'%' |
++--------------------------------------------------+
+2 rows in set (0.00 sec)
+```
+````
+
+
+
+
+
+### 回收用户权限
+
+
+
+案例:
+
+```
+mysql> revoke delete on test_db.* from 'chj'@'%';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show grants for 'chj'@'%'\G;
+*************************** 1. row ***************************
+Grants for chj@%: GRANT USAGE ON *.* TO 'chj'@'%'
+*************************** 2. row ***************************
+Grants for chj@%: GRANT SELECT, INSERT, UPDATE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `test_db`.* TO 'chj'@'%'
+2 rows in set (0.00 sec)
+```
+
+
+
+权限列表:
+
+```
+SELECT, INSERT, UPDATE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER, DELETE
+```
+
+
+
+
+
+
+
+
+
+## 使用C语言连接
+
+### C API
+
+[MySQL官方C接口声明](https://dev.mysql.com/doc/c-api/5.7/en/c-api-function-reference.html)
+
+[MySQL C 结构体](https://dev.mysql.com/doc/c-api/5.7/en/c-api-data-structures.html)
