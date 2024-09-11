@@ -3605,6 +3605,10 @@ create user '用户名'@'%' identified by '密码';
 
 
 
+> 如果遇到SSL不匹配问题,可以尝试在my.cnf中加入skip_ssl,注意位置不对可能不生效
+
+
+
 ### 删除用户
 
 语法:
