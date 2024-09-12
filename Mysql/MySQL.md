@@ -252,8 +252,8 @@ systemctl restart mysqld 	##或者分两步走,先stop再start
 能够登录之后,再进行修改密码,修改密码方式有很多种,不过当前是处于`kip-grant-tables`下,常规方式不允许,可以直接通过修改user表进行修改密码;下面语句暂时用着即可
 
 ```
-#安全强度，默认为中，即1，要求必须包含 数字、符号、⼤⼩写字⺟，⻓度⾄少为8位 
 mysql> set global validate_password_policy=0;		## 设置为弱密码强度
+#安全强度，默认为中，即1，要求必须包含 数字、符号、⼤⼩写字⺟，⻓度⾄少为8位 
 
 set global validate_password_length=1;	## 设置密码最小长度
 
@@ -3776,6 +3776,16 @@ SELECT, INSERT, UPDATE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY
 
 
 ## 使用C语言连接
+
+### 库的安装
+
+如果是通过yum等安装方式安装的mysql,则在安装过程mysql开发包一般也安装好了,因此推荐这种方式安装mysql;
+
+也可以单独下载mysql连接工具,[MySQL :: Download MySQL Connector/C++ (Archived Versions)](https://downloads.mysql.com/archives/c-cpp/);注意,如果能找到对应的版本是最好,不过现在旧版本官网可能不显示了,这个也无妨,mysql对新版本是能做到**前后兼容**的,因此可以下载推荐的8.x版本.
+
+对下载下来的包中,目前最重要的是include文件夹与lib文件夹,有这两个目录就能C/C++连接数据库与开发.
+
+> linux generic: 通用版
 
 ### C API
 
