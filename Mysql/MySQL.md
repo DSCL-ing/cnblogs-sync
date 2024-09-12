@@ -4015,3 +4015,13 @@ int mysql_set_character_set(
 
 
 
+#### mysql_store_result
+
+[MySQL :: MySQL 5.7 C API Developer Guide :: 5.4.77 mysql_store_result()](https://dev.mysql.com/doc/c-api/5.7/en/mysql-store-result.html)
+
+```
+MYSQL_RES *mysql_store_result(MYSQL *mysql);
+```
+
+
+
