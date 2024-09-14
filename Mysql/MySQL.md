@@ -3038,25 +3038,81 @@ SELECT * FROM exam_result;
 
 
 
-###### 限制显示条目 limit
+##### 限制显示条目 limit (分页查询)
+
+> 网页中每页 3 条记录: 按 id 进行分页，分别显示 第 1、2、3 页 
+
+###### 基本语法:
 
 ```
-SELECT * FROM exam_result limit 0,3;          ##显示前3条数据,即[0,3)
+-- 起始下标为 0 
+ 
+-- 从 s 开始，筛选 n 条结果 
+SELECT ... FROM table_name [WHERE ...] [ORDER BY ...] LIMIT s, n
 
-mysql> select * from exam_result limit 0,3;
-+----+-----------+---------+------+---------+
-| id | name      | chinese | math | english |
-+----+-----------+---------+------+---------+
-|  1 | 唐三藏    |      67 |   98 |      56 |
-|  2 | 孙悟空    |      87 |   78 |      77 |
-|  3 | 猪悟能    |      88 |   98 |      90 |
-+----+-----------+---------+------+---------+
-3 rows in set (0.00 sec)
+-- 从 0 开始，筛选 n 条结果
+SELECT ... FROM table_name [WHERE ...] [ORDER BY ...] LIMIT n;; 
+
+-- 从 s 开始，筛选 n 条结果，比第二种用法更明确，建议使用 
+SELECT ... FROM table_name [WHERE ...] [ORDER BY ...] LIMIT n OFFSET s; 
+```
+
+
+
+基本案例:
+
+- 显示前四条数据(默认从0开始)
+
+```
+mysql> select name, math+english+chinese total from exam_result limit 4;
++--------+-------+
+| name   | total |
++--------+-------+
+| 唐三藏 |   221 |
+| 孙悟空 |   242 |
+| 猪悟能 |   276 |
+| 曹孟德 |   233 |
++--------+-------+
+4 rows in set (0.02 sec)
+```
+
+
+
+- 从下标为2开始,显示4条数据
+
+```
+mysql> select id, name, math+english+chinese total from exam_result limit 4 offset 2;
++----+--------+-------+
+| id | name   | total |
++----+--------+-------+
+|  3 | 猪悟能 |   276 |
+|  4 | 曹孟德 |   233 |
+|  5 | 刘玄德 |   185 |
+|  6 | 孙权   |   221 |
++----+--------+-------+
+4 rows in set (0.02 sec)
+```
+
+- 以区间方式 从下标为2开始,显示4条数据
+
+```
+mysql> select id, name, math+english+chinese total from exam_result limit 2,4;
++----+--------+-------+
+| id | name   | total |
++----+--------+-------+
+|  3 | 猪悟能 |   276 |
+|  4 | 曹孟德 |   233 |
+|  5 | 刘玄德 |   185 |
+|  6 | 孙权   |   221 |
++----+--------+-------+
+4 rows in set (0.02 sec)
 ```
 
 > limit 是左闭右开区间
 
 > select * 时,如果未知总数量,最好限制一下回显条目数量,大约在1000条即可
+
+
 
 
 
@@ -3443,6 +3499,160 @@ mysql> SELECT *,chinese+math+english total FROM exam_result WHERE name like '孙
 |  6 | 孙权      |      70 |   73 |      78 |   221 |
 +----+-----------+---------+------+---------+-------+
 2 rows in set (0.00 sec)
+```
+
+
+
+#### 结果排序 Order by
+
+##### 基本语法
+
+```
+-- ASC 为升序（从小到大） 			## ascending order
+-- DESC 为降序（从大到小） 		## descending order
+-- 默认为 ASC 
+ 
+SELECT ... FROM table_name [WHERE ...]  
+ ORDER BY column [ASC|DESC], [...]; 
+```
+
+注意: 没有 **ORDER BY** 子句的查询，返回的顺序是未定义的，永远不要依赖这个顺序
+
+> descend缩写与descript缩写相同
+
+##### 基本案例:
+
+- 同学及数学成绩，按数学成绩升序显示
+
+```
+mysql> select name,math from exam_result order by math asc;
++--------+------+
+| name   | math |
++--------+------+
+| 宋公明 |   65 |
+| 孙权   |   73 |
+| 孙悟空 |   78 |
+| 曹孟德 |   84 |
+| 刘玄德 |   85 |
+| 唐三藏 |   98 |
+| 猪悟能 |   98 |
++--------+------+
+7 rows in set (0.02 sec)
+
+## 降序
+mysql> select name,math from exam_result order by math desc;
++--------+------+
+| name   | math |
++--------+------+
+| 唐三藏 |   98 |
+| 猪悟能 |   98 |
+| 刘玄德 |   85 |
+| 曹孟德 |   84 |
+| 孙悟空 |   78 |
+| 孙权   |   73 |
+| 宋公明 |   65 |
++--------+------+
+7 rows in set (0.02 sec)
+```
+
+- NULL 视为比任何值都小，升序出现在最上面，降序出现在最下面
+
+```
+mysql> select * from class order by name asc;
++----+------+
+| id | name |
++----+------+
+|  3 | NULL |
+|  1 | a    |
+|  2 | b    |
++----+------+
+3 rows in set (0.02 sec)
+
+mysql> select * from class order by name desc;
++----+------+
+| id | name |
++----+------+
+|  2 | b    |
+|  1 | a    |
+|  3 | NULL |
++----+------+
+3 rows in set (0.02 sec)
+```
+
+
+
+- 多字段排序，排序优先级随书写顺序 (相同时怎么排)
+
+查询同学各门成绩，依次按 数学降序，英语降序，语文降序的方式显示(
+
+```
+mysql> select name, math, english, chinese from exam_result order by math desc;
++--------+------+---------+---------+
+| name   | math | english | chinese |
++--------+------+---------+---------+
+| 唐三藏 |   98 |      56 |      67 |
+| 猪悟能 |   98 |      90 |      88 |
+| 刘玄德 |   85 |      45 |      55 |
+| 曹孟德 |   84 |      67 |      82 |
+| 孙悟空 |   78 |      77 |      87 |
+| 孙权   |   73 |      78 |      70 |
+| 刘备   |   73 |      78 |      76 |
+| 宋公明 |   65 |      30 |      75 |
++--------+------+---------+---------+
+8 rows in set (0.02 sec)
+
+mysql> select name, math, english, chinese from exam_result order by math desc, english desc;
++--------+------+---------+---------+
+| name   | math | english | chinese |
++--------+------+---------+---------+
+| 猪悟能 |   98 |      90 |      88 |
+| 唐三藏 |   98 |      56 |      67 |
+| 刘玄德 |   85 |      45 |      55 |
+| 曹孟德 |   84 |      67 |      82 |
+| 孙悟空 |   78 |      77 |      87 |
+| 孙权   |   73 |      78 |      70 |
+| 刘备   |   73 |      78 |      76 |
+| 宋公明 |   65 |      30 |      75 |
++--------+------+---------+---------+
+8 rows in set (0.02 sec)
+
+mysql> select name, math, english, chinese from exam_result order by math desc, english desc, chinese desc;
++--------+------+---------+---------+
+| name   | math | english | chinese |
++--------+------+---------+---------+
+| 猪悟能 |   98 |      90 |      88 |
+| 唐三藏 |   98 |      56 |      67 |
+| 刘玄德 |   85 |      45 |      55 |
+| 曹孟德 |   84 |      67 |      82 |
+| 孙悟空 |   78 |      77 |      87 |
+| 刘备   |   73 |      78 |      76 |
+| 孙权   |   73 |      78 |      70 |
+| 宋公明 |   65 |      30 |      75 |
++--------+------+---------+---------+
+8 rows in set (0.02 sec)
+```
+
+- 可以使用列别名
+
+order by属于对结果进行处理了,即在select之后,因此可以使用别名
+
+> 一定是先有数据,才能进行排序
+
+```
+mysql> select name, math+english+chinese total from exam_result order by total;
++--------+-------+
+| name   | total |
++--------+-------+
+| 宋公明 |   170 |
+| 刘玄德 |   185 |
+| 唐三藏 |   221 |
+| 孙权   |   221 |
+| 刘备   |   227 |
+| 曹孟德 |   233 |
+| 孙悟空 |   242 |
+| 猪悟能 |   276 |
++--------+-------+
+8 rows in set (0.02 sec)
 ```
 
 
