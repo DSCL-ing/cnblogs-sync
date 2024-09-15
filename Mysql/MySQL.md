@@ -3657,6 +3657,156 @@ mysql> select name, math+english+chinese total from exam_result order by total;
 
 
 
+### Update
+
+update是比较危险的行为,使用时要谨慎;
+
+体现在:如果忘记添加条件,可能会导致所有数据被覆盖;
+
+
+
+#### 语法
+
+```
+UPDATE table_name SET column = expr [, column = expr ...] 	##express为表达式
+ [WHERE ...] [ORDER BY ...] [LIMIT ...] 
+```
+
+>  update 的基本原理是: 筛选出数据,再对筛选出的数据做修改;
+>  	相当于update隐藏执行了一系列select操作,语法后的where,order by,limit都是提供给select使用;最后再执行update操作;
+
+#### 基本案例
+
+- 将孙悟空同学的数学成绩变更为 80 分(一次更新一列)
+
+```
+mysql> select name, math from score where name='孙悟空';
++--------+------+
+| name   | math |
++--------+------+
+| 孙悟空 |   78 |
++--------+------+
+1 row in set (0.02 sec)
+
+mysql> update score set math=80 where name='孙悟空';
+Query OK, 1 row affected (0.02 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select name, math from score where name='孙悟空';
++--------+------+
+| name   | math |
++--------+------+
+| 孙悟空 |   80 |
++--------+------+
+1 row in set (0.02 sec)
+```
+
+
+
+- 将曹孟德同学的数学成绩变更为 60 分，语文成绩变更为 70 分(一次更新多列)
+
+````
+```
+mysql> select name, math, chinese from score where name='曹孟德';
++--------+------+---------+
+| name   | math | chinese |
++--------+------+---------+
+| 曹孟德 |   84 |      82 |
++--------+------+---------+
+1 row in set (0.02 sec)
+
+mysql> update score set math=60,chinese=70 where name='曹孟德';
+Query OK, 1 row affected (0.02 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select name, math, chinese from score where name='曹孟德';
++--------+------+---------+
+| name   | math | chinese |
++--------+------+---------+
+| 曹孟德 |   60 |      70 |
++--------+------+---------+
+1 row in set (0.02 sec)
+````
+
+
+
+
+- 将总成绩倒数前三的 3 位同学的数学成绩加上 30 分
+
+````mysql
+## 查看倒数前三的信息
+mysql> select name, math, chinese+math+english total from score order by total asc limit 3;
++--------+------+-------+
+| name   | math | total |
++--------+------+-------+
+| 宋公明 |   65 |   170 |
+| 刘玄德 |   85 |   185 |
+| 曹孟德 |   60 |   197 |
++--------+------+-------+
+3 rows in set (0.02 sec)
+
+
+mysql> update score set math=math+30 order by math+chinese+english asc limit 3;
+Query OK, 3 rows affected (0.02 sec)
+Rows matched: 3  Changed: 3  Warnings: 0
+
+mysql> select name, math, chinese+math+english total from score order by total asc limit 3;
++--------+------+-------+
+| name   | math | total |
++--------+------+-------+
+| 宋公明 |   95 |   200 |
+| 刘玄德 |  115 |   215 |
+| 唐三藏 |   98 |   221 |
++--------+------+-------+
+3 rows in set (0.02 sec)
+````
+
+
+
+- 将所有同学的语文成绩更新为原来的 2 倍 
+
+> 注意：更新全表的语句慎用！
+>
+> 没有 条件 子句，则更新全表
+
+```
+mysql> select name, chinese from score;
++-----------+---------+
+| name      | chinese |
++-----------+---------+
+| 唐三藏    |      67 |
+| 孙悟空    |      87 |
+| 猪悟能    |      88 |
+| 曹孟德    |      70 |
+| 刘玄德    |      55 |
+| 孙权      |      70 |
+| 宋公明    |      75 |
+| 刘备      |      76 |
++-----------+---------+
+8 rows in set (0.00 sec)
+
+mysql> update score set chinese = chinese*2;
+Query OK, 8 rows affected (0.00 sec)
+Rows matched: 8  Changed: 8  Warnings: 0
+
+mysql> select name, chinese from score;
++-----------+---------+
+| name      | chinese |
++-----------+---------+
+| 唐三藏    |     134 |
+| 孙悟空    |     174 |
+| 猪悟能    |     176 |
+| 曹孟德    |     140 |
+| 刘玄德    |     110 |
+| 孙权      |     140 |
+| 宋公明    |     150 |
+| 刘备      |     152 |
++-----------+---------+
+8 rows in set (0.00 sec)
+```
+
+
+
 
 
 ## 用户
