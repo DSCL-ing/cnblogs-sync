@@ -902,6 +902,14 @@ ALTER TABLE  tablename 列名 change 新列名 (字段属性等完整定义...)
 alter table 表名 rename to 新表名;				## to可以省略
 ```
 
+或
+
+```
+rename table 表名 to 新表名;
+```
+
+
+
 
 
 ### 删除表
@@ -3951,6 +3959,10 @@ Create Table: CREATE TABLE `score` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8										## 表被初始化了
 1 row in set (0.00 sec)
 ```
+
+
+
+### 查询结果插入 Insert ... Select ...
 
 
 
