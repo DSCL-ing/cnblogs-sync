@@ -221,6 +221,20 @@ netstat nltp
 
 先看能不能用,简单登录测试,注意刚安装时是不知道密码的,看下文处理
 
+> 更新版本的mysql可能root没有登陆密码,直接回车登录即可.
+>
+> 其他方式如历史记录查看mysql生成临时密码等(旧版本) :
+>
+> `sudo grep 'temporary password' /var/log/mysqld.log `\
+>
+> 搜到就用你的搜到的,搜不到就只能用别的方法
+>
+> 可能临时密码都是相同的,即`waQ,qR%be2(5` 
+>
+> 可以输入试试;
+
+
+
 ```
 mysql -uroot -p ## -u:User, -p表示password
 ```
@@ -266,12 +280,6 @@ flush privileges;	## 刷新权限
 ```
 
 改完密码后就可以移除`skip-grant-tables`配置了
-
-> 更新版本的mysql可能root没有登陆密码,直接回车登录即可.
->
-> 其他方式如历史记录查看mysql生成临时密码等(旧版本) :
->
-> `sudo grep 'temporary password' /var/log/mysqld.log `
 
 ### my.cnf 其他配置项
 
@@ -3807,6 +3815,145 @@ mysql> select name, chinese from score;
 
 
 
+### Delete
+
+#### 语法
+
+```
+DELETE FROM  table_name [WHERE ...] [ORDER BY ...] [LIMIT ...] 
+```
+
+> 语法类似Update, Update需要修改字段,因此多了set; Delete只会删除整行,只需确定哪些行即可.
+
+#### 基本案例
+
+- 删除孙悟空同学的考试成绩 
+
+```mysql
+mysql> delete from score where name = '孙悟空';
+Query OK, 1 row affected (0.00 sec)
+```
+
+#### delete删除整张表数据
+
+注意：删除整表操作要慎用！
+
+```
+mysql> alter table score modify id int unsigned auto_increment not null unique key;
+Query OK, 7 rows affected (0.04 sec)
+Records: 7  Duplicates: 0  Warnings: 0
+
+mysql> show create table score\G;
+*************************** 1. row ***************************
+       Table: score
+Create Table: CREATE TABLE `score` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL COMMENT '同学姓名',
+  `chinese` float DEFAULT '0' COMMENT '语文成绩',
+  `math` float DEFAULT '0' COMMENT '数学成绩',
+  `english` float DEFAULT '0' COMMENT '英语成绩',
+  UNIQUE KEY `id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+
+
+mysql> delete from score;
+Query OK, 7 rows affected (0.00 sec)
+
+mysql> show create table score\G;
+*************************** 1. row ***************************
+       Table: score
+Create Table: CREATE TABLE `score` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL COMMENT '同学姓名',
+  `chinese` float DEFAULT '0' COMMENT '语文成绩',
+  `math` float DEFAULT '0' COMMENT '数学成绩',
+  `english` float DEFAULT '0' COMMENT '英语成绩',
+  UNIQUE KEY `id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8				## 表格信息不变,只删除了数据
+1 row in set (0.00 sec)
+
+```
+
+
+
+#### truncate删除整张表数据(截断表)
+
+##### 语法：
+
+```mysql
+TRUNCATE [TABLE] table_name 
+```
+
+##### 注意：
+
+这个操作慎用
+
+1. 只能对整表操作，不能像 DELETE 一样针对部分数据操作；
+2. 实际上 MySQL 不对数据操作，所以比 DELETE 更快，但是TRUNCATE在删除数据的时候，并不经过真正的事
+物，所以无法回滚
+3. 会重置 AUTO_INCREMENT 项
+
+##### 案例
+
+删除前的表信息
+
+```mysql
+mysql> select * from score;
++----+-----------+---------+------+---------+
+| id | name      | chinese | math | english |
++----+-----------+---------+------+---------+
+|  1 | 唐三藏    |      67 |   98 |      56 |
+|  2 | 孙悟空    |      87 |   78 |      77 |
+|  3 | 猪悟能    |      88 |   98 |      90 |
+|  4 | 曹孟德    |      82 |   84 |      67 |
+|  5 | 刘玄德    |      55 |   85 |      45 |
+|  6 | 孙权      |      70 |   73 |      78 |
+|  7 | 宋公明    |      75 |   65 |      30 |
+|  8 | 刘备      |      76 |   73 |      78 |
++----+-----------+---------+------+---------+
+8 rows in set (0.00 sec)
+
+mysql> show create table score\G;
+*************************** 1. row ***************************
+       Table: score
+Create Table: CREATE TABLE `score` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL COMMENT '同学姓名',
+  `chinese` float DEFAULT '0' COMMENT '语文成绩',
+  `math` float DEFAULT '0' COMMENT '数学成绩',
+  `english` float DEFAULT '0' COMMENT '英语成绩',
+  UNIQUE KEY `id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+
+```
+
+删除后
+
+```mysql
+mysql> truncate  score;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select * from score;
+Empty set (0.00 sec)
+
+mysql> show create table score\G;
+*************************** 1. row ***************************
+       Table: score
+Create Table: CREATE TABLE `score` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL COMMENT '同学姓名',
+  `chinese` float DEFAULT '0' COMMENT '语文成绩',
+  `math` float DEFAULT '0' COMMENT '数学成绩',
+  `english` float DEFAULT '0' COMMENT '英语成绩',
+  UNIQUE KEY `id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8										## 表被初始化了
+1 row in set (0.00 sec)
+```
+
+
+
 
 
 ## 用户
@@ -4011,6 +4158,44 @@ drop user '用户名'@'主机名'
 
 ### 修改密码规则
 
+[文章引用](https://blog.csdn.net/qq_39390545/article/details/112135841)
+
+#### 查看规则/策略
+
+```
+mysql> SHOW VARIABLES LIKE 'validate_password%';
++--------------------------------------+--------+
+| Variable_name                        | Value  |
++--------------------------------------+--------+
+| validate_password_check_user_name    | OFF    |
+| validate_password_dictionary_file    |        |
+| validate_password_length             | 8      |
+| validate_password_mixed_case_count   | 1      |
+| validate_password_number_count       | 1      |
+| validate_password_policy             | MEDIUM |
+| validate_password_special_char_count | 1      |
++--------------------------------------+--------+
+7 rows in set (0.00 sec)
+```
+
+
+
+#### 规则说明
+
+| 属性                                 | 默认值 | 属性描述                                                     |
+| ------------------------------------ | ------ | ------------------------------------------------------------ |
+| validate_password_check_user_name    | OFF    | 设置为ON的时候表示能将密码设置成当前用户名。                 |
+| validate_password_dictionary_file    |        | 用于检查密码的字典文件的路径名，默认为空                     |
+| validate_password_length             | 8      | 密码的最小长度，也就是说密码长度必须大于或等于8              |
+| validate_password_mixed_case_count   | 1      | 如果密码策略是中等或更强的，validate_password要求密码具有的小写和大写字符的最小数量。对于给定的这个值密码必须有那么多小写字符和那么多大写字符。 |
+| validate_password_number_count       | 1      | 密码必须包含的数字个数                                       |
+| validate_password_policy             | MEDIUM | right-aligned 密码强度检验等级，可以使用数值0、1、2或相应的符号值LOW、MEDIUM、STRONG来指定。 `0/LOW：只检查长度。` `1/MEDIUM：检查长度、数字、大小写、特殊字符。` `2/STRONG：检查长度、数字、大小写、特殊字符、字典文件。` |
+| validate_password_special_char_count | 1      | 密码必须包含的特殊字符个数                                   |
+
+
+
+#### 临时设置
+
 修改密码前可以修改密码规则
 
 ```
@@ -4018,6 +4203,18 @@ drop user '用户名'@'主机名'
 set global validate_password_policy=0;		## 设置为弱密码强度
 
 set global validate_password_length=1;	## 设置密码最小长度
+```
+
+#### 持久设置
+
+将以下内容添加到`\etc\my.cnf`中
+
+```
+validate_password_policy=LOW
+validate_password_length=6
+validate_password_number_count=0
+validate_password_special_char_count=0
+validate_password_mixed_case_count=0
 ```
 
 
