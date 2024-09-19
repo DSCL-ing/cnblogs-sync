@@ -302,6 +302,11 @@ port=3306                               #mysql服务端口号
 character-set-server=utf8               #设置字符集为utf8
 default-storage-engine=innodb           #设置默认存储引擎为innodb
 
+
+lower_case_table_names=1								#设置mysqld大小写不敏感(linux需要配置)
+# lower_case_table_names = 0：表名按指定存储，比较是大小写敏感的。
+# lower_case_table_names = 1：表名在磁盘上以小写存储，比较不是大小写敏感的。
+# lower_case_table_names = 2：表名按指定存储，但比较不是大小写敏感的。
 ```
 
 
@@ -4068,6 +4073,294 @@ from, where, group by, select, having
 > 所有的时间日期函数都是从完整的时间日期开始,根据需求进行截断;
 >
 > 例如需要时间,则只显示时间部分;需要日期就显示日期部分;
+
+
+
+
+
+## 复合查询
+
+准备工作，创建一个雇员信息表（来自oracle 9i的经典测试表）
+
+- EMP员工表 
+- DEPT部门表 
+- SALGRADE工资等级表
+
+### scott_data.sql
+
+```
+DROP database IF EXISTS `scott`;
+CREATE database IF NOT EXISTS `scott` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+USE `scott`;
+
+DROP TABLE IF EXISTS `dept`;
+CREATE TABLE `dept` (
+  `deptno` int(2) unsigned zerofill NOT NULL COMMENT '部门编号',
+  `dname` varchar(14) DEFAULT NULL COMMENT '部门名称',
+  `loc` varchar(13) DEFAULT NULL COMMENT '部门所在地点'
+);
+
+
+DROP TABLE IF EXISTS `emp`;
+CREATE TABLE `emp` (
+  `empno` int(6) unsigned zerofill NOT NULL COMMENT '雇员编号',
+  `ename` varchar(10) DEFAULT NULL COMMENT '雇员姓名',
+  `job` varchar(9) DEFAULT NULL COMMENT '雇员职位',
+  `mgr` int(4) unsigned zerofill DEFAULT NULL COMMENT '雇员领导编号',
+  `hiredate` datetime DEFAULT NULL COMMENT '雇佣时间',
+  `sal` decimal(7,2) DEFAULT NULL COMMENT '工资月薪',
+  `comm` decimal(7,2) DEFAULT NULL COMMENT '奖金',
+  `deptno` int(2) unsigned zerofill DEFAULT NULL COMMENT '部门编号'
+);
+
+
+DROP TABLE IF EXISTS `salgrade`;
+CREATE TABLE `salgrade` (
+  `grade` int(11) DEFAULT NULL COMMENT '等级',
+  `losal` int(11) DEFAULT NULL COMMENT '此等级最低工资',
+  `hisal` int(11) DEFAULT NULL COMMENT '此等级最高工资'
+);
+
+
+insert into dept (deptno, dname, loc)
+values (10, 'ACCOUNTING', 'NEW YORK');
+insert into dept (deptno, dname, loc)
+values (20, 'RESEARCH', 'DALLAS');
+insert into dept (deptno, dname, loc)
+values (30, 'SALES', 'CHICAGO');
+insert into dept (deptno, dname, loc)
+values (40, 'OPERATIONS', 'BOSTON');
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7369, 'SMITH', 'CLERK', 7902, '1980-12-17', 800, null, 20);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7499, 'ALLEN', 'SALESMAN', 7698, '1981-02-20', 1600, 300, 30);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7521, 'WARD', 'SALESMAN', 7698, '1981-02-22', 1250, 500, 30);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7566, 'JONES', 'MANAGER', 7839, '1981-04-02', 2975, null, 20);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7654, 'MARTIN', 'SALESMAN', 7698, '1981-09-28', 1250, 1400, 30);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7698, 'BLAKE', 'MANAGER', 7839, '1981-05-01', 2850, null, 30);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7782, 'CLARK', 'MANAGER', 7839, '1981-06-09', 2450, null, 10);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7788, 'SCOTT', 'ANALYST', 7566, '1987-04-19', 3000, null, 20);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7839, 'KING', 'PRESIDENT', null, '1981-11-17', 5000, null, 10);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7844, 'TURNER', 'SALESMAN', 7698,'1981-09-08', 1500, 0, 30);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7876, 'ADAMS', 'CLERK', 7788, '1987-05-23', 1100, null, 20);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7900, 'JAMES', 'CLERK', 7698, '1981-12-03', 950, null, 30);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7902, 'FORD', 'ANALYST', 7566, '1981-12-03', 3000, null, 20);
+
+insert into emp (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+values (7934, 'MILLER', 'CLERK', 7782, '1982-01-23', 1300, null, 10);
+
+insert into salgrade (grade, losal, hisal) values (1, 700, 1200);
+insert into salgrade (grade, losal, hisal) values (2, 1201, 1400);
+insert into salgrade (grade, losal, hisal) values (3, 1401, 2000);
+insert into salgrade (grade, losal, hisal) values (4, 2001, 3000);
+insert into salgrade (grade, losal, hisal) values (5, 3001, 9999);
+
+```
+
+
+
+### 案例
+
+- 查询工资高于500或岗位为MANAGER的雇员，同时还要满足他们的姓名首字母为大写的J
+
+法一:
+
+```
+mysql> select * from emp where (sal>500 or job='MANAGER') and ename like 'J%';
++--------+-------+---------+------+---------------------+---------+------+--------+
+| empno  | ename | job     | mgr  | hiredate            | sal     | comm | deptno |
++--------+-------+---------+------+---------------------+---------+------+--------+
+| 007566 | JONES | MANAGER | 7839 | 1981-04-02 00:00:00 | 2975.00 | NULL |     20 |
+| 007900 | JAMES | CLERK   | 7698 | 1981-12-03 00:00:00 |  950.00 | NULL |     30 |
++--------+-------+---------+------+---------------------+---------+------+--------+
+2 rows in set (0.00 sec)
+```
+
+法二(函数):
+
+```
+mysql> select * from emp where (sal>500 or job='MANAGER') and substring(ename,1,1)='J';
++--------+-------+---------+------+---------------------+---------+------+--------+
+| empno  | ename | job     | mgr  | hiredate            | sal     | comm | deptno |
++--------+-------+---------+------+---------------------+---------+------+--------+
+| 007566 | JONES | MANAGER | 7839 | 1981-04-02 00:00:00 | 2975.00 | NULL |     20 |
+| 007900 | JAMES | CLERK   | 7698 | 1981-12-03 00:00:00 |  950.00 | NULL |     30 |
++--------+-------+---------+------+---------------------+---------+------+--------+
+2 rows in set (0.00 sec)
+```
+
+
+
+- 按照部门号升序而雇员的工资降序排序
+
+```
+mysql> select ename,sal,deptno from emp order by deptno asc, sal desc;
++--------+---------+--------+
+| ename  | sal     | deptno |
++--------+---------+--------+
+| KING   | 5000.00 |     10 |
+| CLARK  | 2450.00 |     10 |
+| MILLER | 1300.00 |     10 |
+| SCOTT  | 3000.00 |     20 |
+| FORD   | 3000.00 |     20 |
+| JONES  | 2975.00 |     20 |
+| ADAMS  | 1100.00 |     20 |
+| SMITH  |  800.00 |     20 |
+| BLAKE  | 2850.00 |     30 |
+| ALLEN  | 1600.00 |     30 |
+| TURNER | 1500.00 |     30 |
+| WARD   | 1250.00 |     30 |
+| MARTIN | 1250.00 |     30 |
+| JAMES  |  950.00 |     30 |
++--------+---------+--------+
+14 rows in set (0.00 sec)
+```
+
+
+
+- 使用年薪进行降序排序(月薪*12+奖金)
+
+```
+mysql> select ename,sal,comm,sal*12+ifnull(comm,0) 年薪 from emp order by 年薪;
++--------+---------+---------+----------+
+| ename  | sal     | comm    | 年薪     |
++--------+---------+---------+----------+
+| SMITH  |  800.00 |    NULL |  9600.00 |
+| JAMES  |  950.00 |    NULL | 11400.00 |
+| ADAMS  | 1100.00 |    NULL | 13200.00 |
+| WARD   | 1250.00 |  500.00 | 15500.00 |
+| MILLER | 1300.00 |    NULL | 15600.00 |
+| MARTIN | 1250.00 | 1400.00 | 16400.00 |
+| TURNER | 1500.00 |    0.00 | 18000.00 |
+| ALLEN  | 1600.00 |  300.00 | 19500.00 |
+| CLARK  | 2450.00 |    NULL | 29400.00 |
+| BLAKE  | 2850.00 |    NULL | 34200.00 |
+| JONES  | 2975.00 |    NULL | 35700.00 |
+| SCOTT  | 3000.00 |    NULL | 36000.00 |
+| FORD   | 3000.00 |    NULL | 36000.00 |
+| KING   | 5000.00 |    NULL | 60000.00 |
++--------+---------+---------+----------+
+14 rows in set (0.00 sec)
+```
+
+
+
+
+
+- 显示每个部门的平均工资和最高工资
+
+```
+mysql> select deptno,format(avg(sal),2),max(sal)  from emp group by deptno;
+# 语义: 按部门分组(分成多张逻辑子表),然后分别对各个组(每张逻辑子表)计算平均值和最大值,平均值保留两位小数.
++--------+--------------------+----------+
+| deptno | format(avg(sal),2) | max(sal) |
++--------+--------------------+----------+
+|     10 | 2,916.67           |  5000.00 |
+|     20 | 2,175.00           |  3000.00 |
+|     30 | 1,566.67           |  2850.00 |
++--------+--------------------+----------+
+3 rows in set (0.00 sec)
+```
+
+
+
+- 显示平均工资低于2000的部门号和它的平均工资
+
+```
+mysql> select deptno, avg(sal) from emp group by deptno having avg(sal)<2000;
+# 题意:以部门号为单位,即按部门号分组,然后 聚合查询;
++--------+-------------+
+| deptno | avg(sal)    |
++--------+-------------+
+|     30 | 1566.666667 |
++--------+-------------+
+1 row in set (0.00 sec)
+```
+
+
+
+- 显示每种岗位的雇员总数，平均工资
+
+```
+mysql> select job, count(*), format(avg(sal),2) from emp group by job;
+# 语义: 以岗位类型进行分组(分表), 分别对各组计算记录数就是雇员总数;
++-----------+----------+--------------------+
+| job       | count(*) | format(avg(sal),2) |
++-----------+----------+--------------------+
+| ANALYST   |        2 | 3,000.00           |
+| CLERK     |        4 | 1,037.50           |
+| MANAGER   |        3 | 2,758.33           |
+| PRESIDENT |        1 | 5,000.00           |
+| SALESMAN  |        4 | 1,400.00           |
++-----------+----------+--------------------+
+5 rows in set (0.00 sec)
+```
+
+
+
+
+
+### 子查询
+
+子查询是指嵌入在其他sql语句中的select语句，也叫嵌套查询
+
+- 显示工资最高的员工的名字和工作岗位
+
+```
+mysql> select ename, job from emp where sal=(select max(sal) from emp);
++-------+-----------+
+| ename | job       |
++-------+-----------+
+| KING  | PRESIDENT |
++-------+-----------+
+1 row in set (0.00 sec)
+```
+
+
+
+
+
+- 显示工资高于平均工资的员工信息
+
+```
+mysql> select * from emp where sal>(select avg(sal) from emp);
++--------+-------+-----------+------+---------------------+---------+------+--------+
+| empno  | ename | job       | mgr  | hiredate            | sal     | comm | deptno |
++--------+-------+-----------+------+---------------------+---------+------+--------+
+| 007566 | JONES | MANAGER   | 7839 | 1981-04-02 00:00:00 | 2975.00 | NULL |     20 |
+| 007698 | BLAKE | MANAGER   | 7839 | 1981-05-01 00:00:00 | 2850.00 | NULL |     30 |
+| 007782 | CLARK | MANAGER   | 7839 | 1981-06-09 00:00:00 | 2450.00 | NULL |     10 |
+| 007788 | SCOTT | ANALYST   | 7566 | 1987-04-19 00:00:00 | 3000.00 | NULL |     20 |
+| 007839 | KING  | PRESIDENT | NULL | 1981-11-17 00:00:00 | 5000.00 | NULL |     10 |
+| 007902 | FORD  | ANALYST   | 7566 | 1981-12-03 00:00:00 | 3000.00 | NULL |     20 |
++--------+-------+-----------+------+---------------------+---------+------+--------+
+6 rows in set (0.00 sec)
+```
 
 
 
