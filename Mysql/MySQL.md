@@ -1845,6 +1845,10 @@ mysql> select * from votes where find_in_set('a',hobby) and find_in_set('b',hobb
 
 ## 表的约束
 
+mysql提供了诸多用于约束数据格式与存储条件的语法,也就是表的约束;
+
+> 实际业务中,可能会考虑到性能等原因,不一定直接在mysql中约束,而是在上层(写业务代码层面)或逻辑上进行约束;虽然不一定在mysql中使用约束,但我们至少通过掌握mysql中的约束,使能更好地在上层理解和运用约束.
+
 ### 空属性
 
 空属性有两个值：null（默认的）和not null(不为空)
@@ -4030,13 +4034,41 @@ SELECT * FROM duplicate_table;
 
 ### 分组聚合查询
 
-聚合函数
+#### 分组
 
-​	服务于group by(分组)
+>  在select中使用group by 子句可以对指定列进行分组查询
+
+语法:
+
+```
+select column1, column2, .. from table group by column; 
+```
+
+
+
+
+
+#### 聚合函数
+
+|函数| 说明|
+|--| --|
+|COUNT([DISTINCT] expr) |返回查询到的数据的 数量
+|SUM([DISTINCT] expr) |返回查询到的数据的 总和，不是数字没有意义 
+|AVG([DISTINCT] expr) |返回查询到的数据的 平均值，不是数字没有意义 
+|MAX([DISTINCT] expr)| 返回查询到的数据的 最大值，不是数字没有意义 
+|MIN([DISTINCT] expr) |返回查询到的数据的 最小值，不是数字没有意义
+
+- 服务于group by(分组)
 
 >  不加group by 其实也是分组,只不过是单独的一单大组,可以理解为以建表约束的规则进行分组,即以原始表格直接聚合
 
+- distinct
 
+**去重之后**再进行聚合函数计算
+
+
+
+#### 描述
 
 分组:对某一组字段,不同的值为不同的组,相同的值为一组.
 
@@ -4062,7 +4094,7 @@ having 用于对分组聚合后的表(逻辑)进行筛选,(优先级在select之
 
 优先级:
 
-from, where, group by, select, having
+from -> where -> group by -> select-> having ;
 
 
 
@@ -4070,9 +4102,182 @@ from, where, group by, select, having
 
 ### 时间日期函数:
 
+![image-20240920185414312](MySQL.assets/image-20240920185414312.png)
+
 > 所有的时间日期函数都是从完整的时间日期开始,根据需求进行截断;
 >
 > 例如需要时间,则只显示时间部分;需要日期就显示日期部分;
+
+
+
+- 获得年月日：
+
+```
+select current_date(); 
+    +----------------+
+    | current_date() | 
+    +----------------+
+    | 2017-11-19     | 
+    +----------------+
+```
+
+
+
+- 获得时分秒：
+
+```
+select current_time(); 
+    +----------------+
+    | current_time() | 
+    +----------------+
+    | 13:51:21       | 
+    +----------------+
+```
+
+
+
+- 获得时间戳：
+
+```
+select current_timestamp(); 
+    +---------------------+
+    | current_timestamp() | 
+    +---------------------+
+    | 2017-11-19 13:51:48 | 
+    +---------------------+
+```
+
+
+
+- 在日期的基础上加日期：
+
+```
+select date_add('2017-10-28', interval 10 day); 
+    +-----------------------------------------+
+    | date_add('2017-10-28', interval 10 day) | 
+    +-----------------------------------------+
+    | 2017-11-07                              | 
+    +-----------------------------------------+
+```
+
+
+
+### 字符串函数
+
+![image-20240920185611045](MySQL.assets/image-20240920185611045.png)
+
+
+
+### 数学函数
+
+![image-20240920185641766](MySQL.assets/image-20240920185641766.png)
+
+
+
+绝对值
+
+```
+select abs(-100.2);
+```
+
+
+
+向上取整
+
+```
+select ceiling(23.04);
+```
+
+
+
+向下取整
+
+```
+select floor(23.7);
+```
+
+
+
+保留2位小数位数（小数四舍五入)
+
+```
+select format(12.3456, 2);
+```
+
+
+
+产生随机数
+
+```
+select rand();
+```
+
+
+
+### 其他函数
+
+- user() 查询当前用户
+
+```
+select user();
+```
+
+
+
+- md5(str)对一个字符串进行md5摘要，摘要后得到一个32位字符串
+
+```
+select md5('admin')
+
++----------------------------------+
+| md5('admin')                     | 
++----------------------------------+
+| 21232f297a57a5a743894a0e4a801fc3 | 
++----------------------------------+
+```
+
+
+
+- database()显示当前正在使用的数据库
+
+```
+select database();
+```
+
+
+
+- password()函数，MySQL数据库使用该函数对用户加密
+
+```
+select password('root'); 
+    +-------------------------------------------+
+    | password('root')                          | 
+    +-------------------------------------------+
+    | *81F5E21E35407D884A6CD4A731AEBFB6AF209E1B | 
+    +-------------------------------------------+
+```
+
+
+
+- ifnull（val1， val2） 如果val1为null，返回val2，否则返回val1的值
+
+```
+select ifnull('abc', '123'); 
+    +----------------------+
+    | ifnull('abc', '123') | 
+    +----------------------+
+    | abc                  | 
+    +----------------------+
+    1 row in set (0.01 sec) 
+    
+select ifnull(null, '123');
+    +---------------------+
+    | ifnull(null, '123') | 
+    +---------------------+
+    | 123                 | 
+    +---------------------+
+    1 row in set (0.00 sec)
+```
 
 
 
@@ -4361,6 +4566,201 @@ mysql> select * from emp where sal>(select avg(sal) from emp);
 +--------+-------+-----------+------+---------------------+---------+------+--------+
 6 rows in set (0.00 sec)
 ```
+
+
+
+## 多表连接
+
+### 笛卡尔积
+
+![image-20240920000650365](MySQL.assets/image-20240920000650365.png)
+
+
+
+### 不同的表做笛卡尔积
+
+#### 案例
+
+- 显示雇员名、雇员工资以及所在部门的名字因为上面的数据来自EMP和DEPT表，因此要联合查询
+
+```
+mysql> select  ename, sal, dname from emp, dept where emp.deptno = dept.deptno;
++--------+---------+------------+
+| ename  | sal     | dname      |
++--------+---------+------------+
+| SMITH  |  800.00 | RESEARCH   |
+| ALLEN  | 1600.00 | SALES      |
+| WARD   | 1250.00 | SALES      |
+| JONES  | 2975.00 | RESEARCH   |
+| MARTIN | 1250.00 | SALES      |
+| BLAKE  | 2850.00 | SALES      |
+| CLARK  | 2450.00 | ACCOUNTING |
+| SCOTT  | 3000.00 | RESEARCH   |
+| KING   | 5000.00 | ACCOUNTING |
+| TURNER | 1500.00 | SALES      |
+| ADAMS  | 1100.00 | RESEARCH   |
+| JAMES  |  950.00 | SALES      |
+| FORD   | 3000.00 | RESEARCH   |
+| MILLER | 1300.00 | ACCOUNTING |
++--------+---------+------------+
+14 rows in set (0.00 sec)
+```
+
+
+
+- 显示部门号为10的部门名，员工名和工资
+
+```
+mysql> select dname, ename, sal from emp,dept where emp.deptno=10;
++------------+--------+---------+
+| dname      | ename  | sal     |
++------------+--------+---------+
+| ACCOUNTING | CLARK  | 2450.00 |
+| ACCOUNTING | KING   | 5000.00 |
+| ACCOUNTING | MILLER | 1300.00 |
+| RESEARCH   | CLARK  | 2450.00 |
+| RESEARCH   | KING   | 5000.00 |
+| RESEARCH   | MILLER | 1300.00 |
+| SALES      | CLARK  | 2450.00 |
+| SALES      | KING   | 5000.00 |
+| SALES      | MILLER | 1300.00 |
+| OPERATIONS | CLARK  | 2450.00 |
+| OPERATIONS | KING   | 5000.00 |
+| OPERATIONS | MILLER | 1300.00 |
++------------+--------+---------+
+12 rows in set (0.00 sec)
+```
+
+
+
+
+
+- 显示各个员工的姓名，工资，及工资级别
+
+法一:
+
+```
+mysql> select ename,sal,grade, losal, hisal from emp,salgrade where sal>=losal and sal <hisal;
++--------+---------+-------+-------+-------+
+| ename  | sal     | grade | losal | hisal |
++--------+---------+-------+-------+-------+
+| SMITH  |  800.00 |     1 |   700 |  1200 |
+| ALLEN  | 1600.00 |     3 |  1401 |  2000 |
+| WARD   | 1250.00 |     2 |  1201 |  1400 |
+| JONES  | 2975.00 |     4 |  2001 |  3000 |
+| MARTIN | 1250.00 |     2 |  1201 |  1400 |
+| BLAKE  | 2850.00 |     4 |  2001 |  3000 |
+| CLARK  | 2450.00 |     4 |  2001 |  3000 |
+| KING   | 5000.00 |     5 |  3001 |  9999 |
+| TURNER | 1500.00 |     3 |  1401 |  2000 |
+| ADAMS  | 1100.00 |     1 |   700 |  1200 |
+| JAMES  |  950.00 |     1 |   700 |  1200 |
+| MILLER | 1300.00 |     2 |  1201 |  1400 |
++--------+---------+-------+-------+-------+
+12 rows in set (0.00 sec)
+
+```
+
+法二
+
+```
+mysql> select ename,sal,grade, losal, hisal from emp,salgrade where sal between losal and hisal;
++--------+---------+-------+-------+-------+
+| ename  | sal     | grade | losal | hisal |
++--------+---------+-------+-------+-------+
+| SMITH  |  800.00 |     1 |   700 |  1200 |
+| ALLEN  | 1600.00 |     3 |  1401 |  2000 |
+| WARD   | 1250.00 |     2 |  1201 |  1400 |
+| JONES  | 2975.00 |     4 |  2001 |  3000 |
+| MARTIN | 1250.00 |     2 |  1201 |  1400 |
+| BLAKE  | 2850.00 |     4 |  2001 |  3000 |
+| CLARK  | 2450.00 |     4 |  2001 |  3000 |
+| SCOTT  | 3000.00 |     4 |  2001 |  3000 |
+| KING   | 5000.00 |     5 |  3001 |  9999 |
+| TURNER | 1500.00 |     3 |  1401 |  2000 |
+| ADAMS  | 1100.00 |     1 |   700 |  1200 |
+| JAMES  |  950.00 |     1 |   700 |  1200 |
+| FORD   | 3000.00 |     4 |  2001 |  3000 |
+| MILLER | 1300.00 |     2 |  1201 |  1400 |
++--------+---------+-------+-------+-------+
+14 rows in set (0.00 sec)
+```
+
+
+
+### 自连接
+
+相同的表自己连接自己
+
+#### 案例
+
+- 显示员工FORD的上级领导的编号和姓名（mgr是员工领导的编号--empno）
+
+法一:
+
+```
+mysql> select ename,empno from emp where empno=(select mgr from emp where ename='FORD');
++-------+--------+
+| ename | empno  |
++-------+--------+
+| JONES | 007566 |
++-------+--------+
+1 row in set (0.00 sec)
+```
+
+法二:
+
+```
+mysql> select t1.ename,t1.mgr,t2.ename leader from emp t1,emp t2 where t1.ename='FORD' and t1.mgr=t2.empno;
++-------+------+--------+
+| ename | mgr  | leader |
++-------+------+--------+
+| FORD  | 7566 | JONES  |
++-------+------+--------+
+1 row in set (0.00 sec)
+```
+
+
+
+### 内连接
+
+上文用的笛卡尔积实际就是内连接;内连接也有特定的语法:
+
+> 内连接实际上就是利用where子句对两种表形成的笛卡儿积进行筛选，也是在开发过程中使用的最多的连接查询。
+
+```
+select 字段 from 表1 inner join 表2 on 连接条件 and 其他条件；
+```
+
+> 使用语法能够能够提高模块化程度与可读性,同样的学习成本也提高了
+
+### 外连接
+
+外连接分为左外连接和右外连接
+
+#### 左外连接
+
+如果联合查询，左侧的表完全显示我们就说是左外连接。
+
+> 保留左表(左表始终所有数据始终可见),右表如果不满足则填充NULL;
+>
+> 显然,核心就是以左表为主的思想
+
+```
+select 字段名  from 表名1 left join 表名2 on 连接条件;				## 实际就是把inner换成left或right
+```
+
+
+
+#### 右外连接
+
+语法:
+
+```	
+select 字段 from 表名1 right join 表名2  on  连接条件；
+```
+
+
 
 
 
