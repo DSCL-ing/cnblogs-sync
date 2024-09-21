@@ -5170,7 +5170,7 @@ SELECT, INSERT, UPDATE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY
 
 
 
-## 使用C语言连接
+## C/C++连接与使用MySQL
 
 > mysql操作是线程安全的(事务)
 
