@@ -129,7 +129,133 @@ lower_snake_case.proto 。
 
 指定 proto3 语法 
 
-步骤2：编译 contacts.proto ⽂件，⽣成 C++ ⽂件 
+Protocol Buffers 语⾔版本3，简称 proto3，是 .proto ⽂件最新的语法版本。proto3 简化了 Protocol 
+Buffers 语⾔，既易于使⽤，⼜可以在更⼴泛的编程语⾔中使⽤。它允许你使⽤ Java，C++，Python 
+等多种语⾔⽣成 protocol buffer 代码。 
+在 .proto ⽂件中，要使⽤ syntax = "proto3"; 来指定⽂件语法为 proto3，并且必须写在除去 
+注释内容的第⼀⾏。 如果没有指定，编译器会使⽤proto2语法。 
+在通讯录 1.0 的 contacts.proto ⽂件中，可以为⽂件指定 proto3 语法，内容如下： 
+
+```
+ syntax = "proto3";
+```
+
+package 声明符 
+package 是⼀个可选的声明符，能表⽰ .proto ⽂件的命名空间，在项⽬中要有唯⼀性。它的作⽤是为
+了避免我们定义的消息出现冲突。
+在通讯录 1.0 的 contacts.proto ⽂件中，可以声明其命名空间，内容如下： 
+
+```
+syntax = "proto3"; 
+package contacts;
+```
+
+
+
+定义消息（message） 
+消息（message）: 要定义的结构化对象，我们可以给这个结构化对象中定义其对应的属性内容。 
+这⾥再提⼀下为什么要定义消息？
+在⽹络传输中，我们需要为传输双⽅定制协议。定制协议说⽩了就是定义结构体或者结构化数据， 
+⽐如，tcp，udp 报⽂就是结构化的。 
+再⽐如将数据持久化存储到数据库时，会将⼀系列元数据统⼀⽤对象组织起来，再进⾏存储。 
+所以 ProtoBuf 就是以 message 的⽅式来⽀持我们定制协议字段，后期帮助我们形成类和⽅法来使
+⽤。在通讯录 1.0 中我们就需要为 联系⼈ 定义⼀个 message。 
+
+
+
+.proto ⽂件中定义⼀个消息类型的格式为： 
+
+```
+message 消息类型名{
+
+}
+
+## 消息类型命名规范：使⽤驼峰命名法，⾸字⺟⼤写。
+```
+
+为 contacts.proto（通讯录 1.0）新增联系⼈message，内容如下： 
+
+```
+syntax = "proto3"; 
+package contacts;
+
+// 定义联系⼈消息 
+message PeopleInfo {
+
+}
+```
+
+
+
+定义消息字段 
+在 message 中我们可以定义其属性字段，字段定义格式为：字段类型 字段名 = 字段唯⼀编号； 
+• 字段名称命名规范：全⼩写字⺟，多个字⺟之间⽤ _ 连接。 
+• 字段类型分为：标量数据类型 和 特殊类型（包括枚举、其他消息类型等）。 
+• 字段唯⼀编号：⽤来标识字段，⼀旦开始使⽤就不能够再改变。
+
+
+
+该表格展⽰了定义于消息体中的标量数据类型，以及编译 .proto ⽂件之后⾃动⽣成的类中与之对应的 
+字段类型。在这⾥展⽰了与 C++ 语⾔对应的类型。  
+
+
+
+|proto Type | Notes | C++ Type |
+|---|---|---|
+|double| |double |
+|float    |  |float |
+|int32 |使⽤变⻓编码[1]。负数的编码效率较低⸺若字段可能为负值，应使⽤ sint32 代替。 |int32 |
+|int64  |使⽤变⻓编码[1]。负数的编码效率较低⸺若字段可能为负值，应使⽤ sint64 代替。|int64 |
+|uint32  |使⽤变⻓编码[1]。 |uint32 |
+|uint64  |使⽤变⻓编码[1]。| uint64 |
+|sint32  |使⽤变⻓编码[1]。符号整型。负值的编码效率⾼于常规 int32 类型。 |int32 |
+|sint64 |使⽤变⻓编码[1]。符号整型。负值的编码效率⾼于常规的 int64 类型。 |int64 |
+|fixed32 |定⻓ 4 字节。若值常⼤于2^28 则会⽐ uint32 更⾼效。 |uint32 |
+|fixed64 |定⻓ 8 字节。若值常⼤于2^56 则会⽐ uint64 更⾼效。 |uint64 |
+|sfixed32 |定⻓ 4 字节。 |int32 |
+|sfixed64 |定⻓ 8 字节。| int64 |
+|bool | |bool |
+|string |包含 UTF-8 和 ASCII 编码的字符串，⻓度不能超过2^32 。 |string |
+|bytes |可包含任意的字节序列但⻓度不能超过 2^32 。|string |
+
+>  [1] 变⻓编码是指：经过protobuf 编码后，原本4字节或8字节的数可能会被变为其他字节数。
+
+
+
+更新 contacts.proto (通讯录 1.0)，新增姓名、年龄字段： 
+
+```
+syntax = "proto3"; 
+package contacts;
+
+message PeopleInfo {
+  string name = 1;            
+  int32 age = 2;  
+}
+```
+
+
+
+在这⾥还要特别讲解⼀下字段唯⼀编号的范围：
+
+> 1 ~ 536,870,911 (2^29 - 1) ，其中 19000 ~ 19999  不可⽤。 
+
+19000 ~ 19999 不可⽤是因为：在 Protobuf 协议的实现中，对这些数进⾏了预留。如果⾮要在.proto 
+⽂件中使⽤这些预留标识号，例如将 name 字段的编号设置为19000，编译时就会报警： 
+
+```
+// 消息中定义了如下编号，代码会告警： 
+// Field numbers 19,000 through 19,999 are reserved for the protobuf 
+implementation
+string name = 19000; 
+```
+
+
+
+
+
+### 步骤2：编译 contacts.proto ⽂件，⽣成 C++ ⽂件 
+
 编译命令 
 编译命令⾏格式为：
 
@@ -159,3 +285,80 @@ protoc --cpp_out=. contacts.proto		##生成C++的类
 protoc -I fast_start --cpp_out=fast_start contacts.proto
 ```
 
+
+
+编译 contacts.proto ⽂件后会⽣成什么 
+编译 contacts.proto ⽂件后，会⽣成所选择语⾔的代码，我们选择的是C++，所以编译后⽣成了两个 
+⽂件：contacts.pb.h contacts.pb.cc 。 
+对于编译⽣成的 C++ 代码，包含了以下内容 ： 
+• 对于每个 message ，都会⽣成⼀个对应的消息类。 
+
+• 在消息类中，编译器为每个字段提供了获取和设置⽅法，以及⼀下其他能够操作字段的⽅法。
+• 编辑器会针对于每个 .proto ⽂件⽣成.h 和 .cc ⽂件，分别⽤来存放类的声明与类的实现。
+
+
+
+contacts.pb.h 部分代码展⽰ 
+
+```
+class PeopleInfo final : public ::PROTOBUF_NAMESPACE_ID::Message {
+ public:
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const PeopleInfo& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom; 
+  void MergeFrom( const PeopleInfo& from) {
+    PeopleInfo::MergeImpl(*this, from); 
+  }
+
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "PeopleInfo"; 
+  }
+
+  // string name = 1;
+  void clear_name();
+  const std::string& name() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT> 
+  void set_name(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_name();
+  PROTOBUF_NODISCARD std::string* release_name();
+  void set_allocated_name(std::string* name);
+
+  // int32 age = 2; 
+  void clear_age(); 
+  int32_t age() const;
+  void set_age(int32_t value);
+};
+```
+
+上述的例⼦中：
+• 每个字段都有设置和获取的⽅法， getter 的名称与⼩写字段完全相同，setter ⽅法以 set_ 开头。 
+• 每个字段都有⼀个 clear_ ⽅法，可以将字段重新设置回 empty 状态。 
+
+
+
+在消息类的⽗类 MessageLite 中，提供了读写消息实例的⽅法，包括序列化⽅法和反序列化⽅法。 
+
+```
+class MessageLite { 
+public:
+        //序列化： 
+        bool SerializeToOstream(ostream* output) const;  // 将序列化后数据写⼊⽂件 
+流 
+        bool SerializeToArray(void *data, int size) const; 
+        bool SerializeToString(string* output) const;
+        
+        //反序列化： 
+        bool ParseFromIstream(istream* input);   // 从流中读取数据，再进⾏反序列化 
+动作 
+        bool ParseFromArray(const void* data, int size); 
+        bool ParseFromString(const string& data);
+};
+```
+
+注意：
+• 序列化的结果为⼆进制字节序列，⽽⾮⽂本格式。
+• 以上三种序列化的⽅法没有本质上的区别，只是序列化后输出的格式不同，可以供不同的应⽤场景
+使⽤。
+• 序列化的 API 函数均为const成员函数，因为序列化不会改变类对象的内容， ⽽是将序列化的结果
+保存到函数⼊参指定的地址中。
+• 详细 message API 可以参⻅ [message.h | Protocol Buffers Documentation (protobuf.dev)](https://protobuf.dev/reference/cpp/api-docs/google.protobuf.message/#Message)。 
