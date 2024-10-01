@@ -104,3 +104,58 @@ source /etc/profile
 
 
 
+## 快速上⼿
+
+在快速上⼿中，会编写第⼀版本的通讯录 1.0。在通讯录 1.0 版本中，将实现： 
+• 对⼀个联系⼈的信息使⽤ PB 进⾏序列化，并将结果打印出来。 
+• 对序列化后的内容使⽤ PB 进⾏反序列，解析出联系⼈信息并打印出来。 
+• 联系⼈包含以下信息: 姓名、年龄。 
+通过通讯录 1.0，我们便能了解使⽤ ProtoBuf 初步要掌握的内容，以及体验到 ProtoBuf 的完整使⽤流
+程。
+
+
+
+
+
+### 步骤1：创建 .proto ⽂件 
+
+⽂件规范 
+• 创建 .proto ⽂件时，⽂件命名应该使⽤全⼩写字⺟命名，多个字⺟之间⽤ _ 连接。 例如：
+lower_snake_case.proto 。 
+• 书写 .proto ⽂件代码时，应使⽤ 2 个空格的缩进。 
+我们为通讯录 1.0 新建⽂件： contacts.proto 
+添加注释 
+向⽂件添加注释，可使⽤// 或者 /* ... */ 
+
+指定 proto3 语法 
+
+步骤2：编译 contacts.proto ⽂件，⽣成 C++ ⽂件 
+编译命令 
+编译命令⾏格式为：
+
+```
+protoc  [--proto_path=IMPORT_PATH]  --cpp_out=DST_DIR  path/to/file.proto
+
+protoc               是 Protocol Buffer 提供的命令⾏编译⼯具。
+
+--proto_path         指定 被编译的.proto⽂件所在⽬录，可多次指定。可简写成 -I IMPORT_PATH 。如不指定										 该参数，则在当前⽬录进⾏搜索。当某个.proto ⽂件 import 其他 .proto ⽂件时，或需										 要编译的 .proto ⽂件不在当前⽬录下，这时就要⽤-I来指定搜索⽬录。
+
+--cpp_out=           指编译后的⽂件为 C++ ⽂件。 
+
+OUT_DIR              编译后⽣成⽂件的⽬标路径。
+
+path/to/file.proto   要编译的.proto⽂件。
+```
+
+编译 contacts.proto ⽂件命令如下： 
+
+```
+protoc --cpp_out=. contacts.proto		##生成C++的类
+```
+
+或
+
+```
+protoc -I fast_start --cpp_out=fast_start contacts.proto
+```
+
