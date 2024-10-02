@@ -1,3 +1,7 @@
+[toc]
+
+
+
 # ProtoBuf
 
 
@@ -357,6 +361,16 @@ class PeopleInfo final : public ::PROTOBUF_NAMESPACE_ID::Message {
 
 
 
+那序列化与反序列化类呢?
+
+根据下图可以发现,我们定义的类还继承了一个Message类
+
+![image-20241003013452576](protobuf.assets/image-20241003013452576.png)
+
+再看Message,还继承了一个类MessageLite
+
+![image-20241003013721208](protobuf.assets/image-20241003013721208.png)
+
 在消息类的⽗类 MessageLite 中，提供了读写消息实例的⽅法，包括序列化⽅法和反序列化⽅法。 
 
 ```
@@ -394,41 +408,43 @@ public:
   main.cc 
 
 ```
-#include <iostream>                          
-#include "contacts.pb.h"     // 引⼊编译⽣成的头⽂件  
-using namespace std;      
-                                                             
-int main() {       
+#include<iostream>
+#include"contacts.pb.h"
+#include<string>
 
-    string people_str;      
 
-    {
+int main(){
+  std::string str;
 
-        // .proto⽂件声明的package，通过protoc编译后，会为编译⽣成的C++代码声明同名的 
-命名空间 
-        // 其范围是在.proto ⽂件中定义的内容 
-        contacts::PeopleInfo people;      
-        people.set_age(20);                                     
-        people.set_name("张珊");      
-        // 调⽤序列化⽅法，将序列化后的⼆进制序列存⼊string中 
-        if (!people.SerializeToString(&people_str)) {      
-          cout << "序列化联系⼈失败." << endl;      
-        }
-        // 打印序列化结果 
-        cout << "序列化后的 people_str: " << people_str << endl;    
+  {
+    contacts::PeopleInfo pi;
+    pi.set_age(18);
+    pi.set_name("张三");
+    if(pi.SerializeToString(&str)){
+      std::cout<<"序列化成功,结果: "<<str<<std::endl;
     }
-                                                                    
-    {
-        contacts::PeopleInfo people;    
-        // 调⽤反序列化⽅法，读取string中存放的⼆进制序列，并反序列化出对象 
-        if (!people.ParseFromString(people_str)) {    
-          cout << "反序列化出联系⼈失败." << endl;    
-        }   
-        // 打印结果 
-        cout << "Parse age: " << people.age() << endl;    
-        cout << "Parse name: " << people.name() << endl;    
-    } 
-}    
+    else{
+      std::cerr<<"序列化失败"<<std::endl;
+      return -1;
+    }
+  }
+
+  {
+    contacts::PeopleInfo pi;
+    if(pi.ParseFromString(str)){
+      std::cout<<"反序列化成功 "<<std::endl;
+      std::cout<<"姓名: "<<pi.name()<<std::endl;
+      std::cout<<"年龄: "<<pi.age()<<std::endl;
+    }
+    else{
+      std::cerr<<"反序列化失败"<<std::endl;
+      return -1;
+    }
+
+  }
+
+  return 0;
+}
 ```
 
 代码书写完成后，编译 main.cc，⽣成可执⾏程序 TestProtoBuf ： 
@@ -443,11 +459,12 @@ g++ main.cc contacts.pb.cc -o TestProtoBuf -std=c++11 -lprotobuf
 执⾏TestProtoBuf ，可以看⻅ people 经过序列化和反序列化后的结果： 
 
 ```
-hyb@139-159-150-152:~/protobuf$ ./TestProtoBuf 
-序列化后的 people_str: 
-张珊
-Parse age: 20 
-Parse name: 张珊
+[chj@gz fast_start 00:34:37]$ ./test
+序列化成功,结果:																## 注意,序列化存放的都是二进制,此处还有一些数据,如换行
+张三
+反序列化成功
+姓名: 张三
+年龄: 18
 ```
 
 由于 ProtoBuf 是把联系⼈对象序列化成了⼆进制序列，这⾥⽤ string 来作为接收⼆进制序列的容器。
@@ -466,16 +483,29 @@ Parse name: 张珊
 
 ## proto 3 语法详解 
 
-• 不再打印联系⼈的序列化结果，⽽是将通讯录序列化后并写⼊⽂件中。
-• 从⽂件中将通讯录解析出来，并进⾏打印。
-• 新增联系⼈属性，共包括：姓名、年龄、电话信息、地址、其他联系⽅式、备注。
+### 小项目流程
 
-1. 字段规则 
+- 将通讯录序列化后并写⼊⽂件中。
+- 从⽂件中将通讯录解析出来，并进⾏打印。
+- 新增联系⼈属性，共包括：姓名、年龄、电话信息、地址、其他联系⽅式、备注。
+
+
+
+### 字段的修饰规则 
+
 消息的字段可以⽤下⾯⼏种规则来修饰：
-• singular ：消息中可以包含该字段零次或⼀次（不超过⼀次）。 proto3 语法中，字段默认使⽤该
+
+#### singular 
+
+消息中可以包含该字段零次或⼀次（不超过⼀次）。 proto3 语法中，字段默认使⽤该
 规则。
-• repeated ：消息中可以包含该字段任意多次（包括零次），其中重复值的顺序会被保留。可以理
+
+#### repeated 
+
+消息中可以包含该字段任意多次（包括零次），其中重复值的顺序会被保留。可以理
 解为定义了⼀个数组。
+
+
 
 更新 contacts.proto ，PeopleInfo 消息中新增 phone_numbers 字段，表⽰⼀个联系⼈有多个 
 号码，可将其设置为 repeated，写法如下： 
@@ -487,19 +517,25 @@ package contacts;
 message PeopleInfo {
   string name = 1;            
   int32 age = 2;  
-  repeated string phone_numbers = 3;
-
+  repeated string phone_numbers = 3;	##一个类型为string的数组
+}
 ```
 
-2. 消息类型的定义与使⽤ 
-2.1 定义 
-在单个 .proto ⽂件中可以定义多个消息体，且⽀持定义嵌套类型的消息（任意多层）。每个消息体中
-的字段编号可以重复。
+
+
+<Br>
+
+### 消息类型的定义与使⽤ 
+
+#### 定义 
+
+在单个 .proto ⽂件中可以定义多个消息体，且⽀持定义嵌套类型的消息（任意多层）。每个消息体中的字段编号可以重复。
+
+
+
 更新 contacts.proto，我们可以将 phone_number 提取出来，单独成为⼀个消息： 
 
-
-
-嵌套写法
+##### 嵌套写法
 
 ```
 // -------------------------- 嵌套写法 ------------------------- 
@@ -515,7 +551,7 @@ message PeopleInfo {
 }
 ```
 
-非嵌套写法
+##### 非嵌套写法
 
 ```
 // -------------------------- ⾮嵌套写法 ------------------------- 
@@ -532,8 +568,12 @@ message PeopleInfo {
 }
 ```
 
-2.2 使⽤ 
-• 消息类型可作为字段类型使⽤
+
+
+#### 使⽤ 
+
+##### 消息类型可作为字段类型使⽤
+
 contacts.proto  
 
 ```
@@ -554,7 +594,8 @@ message PeopleInfo {
 
 
 
-可导⼊其他 .proto ⽂件的消息并使⽤ 
+##### 导⼊其他 .proto ⽂件的message
+
 例如 Phone 消息定义在 phone.proto ⽂件中： 
 
 ```
