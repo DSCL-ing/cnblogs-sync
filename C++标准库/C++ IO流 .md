@@ -18,8 +18,9 @@ using ios = ios_base ...
 
 ### 文件创建
 
+使用ofstream(filename)或fstream时进行写入时
 
-i/ofstream(filename);如果文件名对应的文件不存在,I/O流函数都会对其进行创建新文件.
+如果文件名对应的文件不存在,则都会对其进行创建新文件.
 
 
 
@@ -210,8 +211,9 @@ Each extracted character is appended to the string as if its member push_back wa
 每个提取的字符都被附加到字符串中，就像其成员push_back被调用一样。
 ```
 
-1. 第一次调用时会清空str
-2. 之后每一次调用都会追加至str
+1. 一次读取一行,遇到分隔符(换行)停止,下次读取跳过换行符读取
+2. 第一次调用时会清空str
+3. 之后每一次调用都会追加至str
 
 
 
@@ -270,4 +272,28 @@ The function also stops extracting characters if the end-of-file is reached. If 
 ### 用途:
 
 可以搭配getline一起使用,在连续读取时,可以方便舍弃掉一些分隔符;
+
+
+
+exam:
+
+```
+   std::cout << "请输⼊联系⼈年龄: ";
+   int age = 0;
+   std::cin>>age;
+   pi->set_age(age);
+   std::cin.ignore(256,'\n');  //cin读完后,缓冲区还会剩分隔符及后面的数据,如果下次读取是getline则会把这个分隔符一并读取,可能导致得到不想要的结果;因此可以清理一下
+   for(int i = 0; ;i++) {
+     std::cout<<"请输入联系人电话"<<i+1<<"(只输入回车完成电话新增):";
+     std::string number;
+     getline(std::cin,number);
+     if(number.empty())//getline会忽略分割符(换行),下次会跳过
+     {
+       break;
+     }
+     pi->add_phone()->set_number(number);
+   }
+
+   std::cout<<"添加联系人成功"<<std::endl;
+```
 
