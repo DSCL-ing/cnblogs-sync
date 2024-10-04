@@ -154,3 +154,57 @@ xargs命令默认接收的信息中，空格是默认定界符，所以可以接
 | -I   | 设置替换字符串             | -t        | 显示xargs执行的命令        |
 | -n   | 设置多行输出               | --help    | 显示帮助信息               |
 | -p   | 执行命令前询问用户是否确认 | --version | 显示版本信息               |
+
+
+
+
+
+### hexdump – 以多种进制格式查看文件内容
+
+hexdump命令来自英文词组hexadecimal dump的缩写，其功能是以多种进制格式查看文件内容。hexdump命令是Linux系统中一款好用的文件内容查看工具，可以将文件内容转换成ASCII、二进制、八进制、十进制、十六进制格式进行查看，满足各种需求。
+
+```
+[chj@gz protu3 12:27:28]$ hexdump --help
+hexdump: invalid option -- '-'
+
+Usage:
+ hexdump [options] file...
+
+Options:
+ -b              one-byte octal display
+ -c              one-byte character display
+ -C              canonical hex+ASCII display
+ -d              two-byte decimal display
+ -o              two-byte octal display
+ -x              two-byte hexadecimal display
+ -e format       format string to be used for displaying data
+ -f format_file  file that contains format strings
+ -n length       interpret only length bytes of input
+ -s offset       skip offset bytes from the beginning
+ -v              display without squeezing similar lines
+ -V              output version information and exit
+```
+
+**语法格式：**hexdump 参数 文件
+
+**常用参数：**
+
+| -b   | 使用八进制显示            |      | -n                     | 仅格式化输入文件的前N个字节 |
+| ---- | ------------------------- | ---- | ---------------------- | --------------------------- |
+| -c   | 使用单字节字符显示        | -o   | 使用双字节八进制显示   |                             |
+| -C   | 使用十六进制和ASCII码显示 | -s   | 从偏移量开始输出       |                             |
+| -d   | 使用双字节十进制显示      | -v   | 显示所有输入数据       |                             |
+| -e   | 设置字符串格式            | -x   | 使用双字节十六进制显示 |                             |
+
+
+
+### time – 指令执行时所消耗的时间
+
+time命令的用途，在于量测特定指令执行时所需消耗的时间及系统资源等消息。 例如 CPU 时间、记忆体、输入输出等等。需要特别注意的是，部分消息在 Linux 上显示不出来。这是因为在 Linux 上部分资源的分配函式与 time 指令所预设的方式并不相同，以致于 time 指令无法取得这些资料。
+
+**语法格式：**time [参数] [命令]
+
+| -o        | 设定结果输出档。这个选项会将 time 的输出写入 所指定的档案中。 |
+| --------- | ------------------------------------------------------------ |
+| -a        | 配合 -o 使用，会将结果写到档案的末端，而不会覆盖掉原来的内容。 |
+| -f FORMAT | 以 FORMAT 字串设定显示方式。                                 |

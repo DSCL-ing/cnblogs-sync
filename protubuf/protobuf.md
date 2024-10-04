@@ -527,7 +527,7 @@ message PeopleInfo {
 
 ### 消息类型的定义与使⽤ 
 
-#### 定义 
+#### 1. 定义 
 
 在单个 .proto ⽂件中可以定义多个消息体，且⽀持定义嵌套类型的消息（任意多层）。每个消息体中的字段编号可以重复。
 
@@ -570,7 +570,7 @@ message PeopleInfo {
 
 
 
-#### 使⽤ 
+#### 2. 使⽤ 
 
 ##### 消息类型可作为字段类型使⽤
 
@@ -626,3 +626,369 @@ message PeopleInfo {
 ```
 
 ![image-20241002213530082](protobuf.assets/image-20241002213530082.png)
+
+
+
+
+
+##### 创建通讯录 2.0 版本 
+
+通讯录 2.x 的需求是向⽂件中写⼊通讯录列表，以上我们只是定义了⼀个联系⼈的消息，并不能存放通 
+讯录列表，所以还需要在完善⼀下 contacts.proto (终版通讯录 2.0)： 
+
+```
+syntax = "proto3"; 
+package contacts;
+
+// 联系⼈  
+message PeopleInfo {
+  string name = 1;                  // 姓名 
+  int32 age = 2;                    // 年龄 
+
+  message Phone {
+    string number = 1;   // 电话号码 
+  }
+  repeated Phone phone = 3;         // 电话 
+}
+
+// 通讯录  
+message Contacts {
+  repeated PeopleInfo contacts = 1;
+}
+```
+
+接着进⾏⼀次编译：
+
+```
+protoc --cpp_out=. contacts.proto
+```
+
+contacts.pb.h 更新的部分代码展⽰ 
+
+```
+// 新增了 PeopleInfo_Phone 类 
+class PeopleInfo_Phone final : public ::PROTOBUF_NAMESPACE_ID::Message { 
+public:
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom; 
+  void CopyFrom(const PeopleInfo_Phone& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom; 
+  void MergeFrom( const PeopleInfo_Phone& from) {
+    PeopleInfo_Phone::MergeImpl(*this, from);
+  }
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "PeopleInfo.Phone"; 
+  }
+
+  // string number = 1;
+  void clear_number();
+  const std::string& number() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT> 
+  void set_number(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_number();
+  PROTOBUF_NODISCARD std::string* release_number();
+  void set_allocated_number(std::string* number);
+};
+
+// 更新了 PeopleInfo 类 
+class PeopleInfo final : public ::PROTOBUF_NAMESPACE_ID::Message {
+ public:
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const PeopleInfo& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom; 
+  void MergeFrom( const PeopleInfo& from) {
+    PeopleInfo::MergeImpl(*this, from); 
+  }
+
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "PeopleInfo"; 
+  }
+
+  typedef PeopleInfo_Phone Phone;
+  // repeated .PeopleInfo.Phone phone = 3;
+  int phone_size() const;
+  void clear_phone();
+  ::PeopleInfo_Phone* mutable_phone(int index); 
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::PeopleInfo_Phone >*
+      mutable_phone();
+  const ::PeopleInfo_Phone& phone(int index) const;
+  ::PeopleInfo_Phone* add_phone();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::PeopleInfo_Phone >&
+      phone() const;
+};
+
+// 新增了 Contacts 类 
+class Contacts final : public ::PROTOBUF_NAMESPACE_ID::Message {
+ public:
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const Contacts& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom; 
+  void MergeFrom( const Contacts& from) {
+    Contacts::MergeImpl(*this, from);
+  }
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Contacts"; 
+  }
+
+  // repeated .PeopleInfo contacts = 1;
+  int contacts_size() const;
+  void clear_contacts();
+  ::PeopleInfo* mutable_contacts(int index); 
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::PeopleInfo >*
+      mutable_contacts();
+  const ::PeopleInfo& contacts(int index) const;
+  ::PeopleInfo* add_contacts();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::PeopleInfo >&
+      contacts() const;
+  };
+```
+
+>上述的例⼦中：
+>• 每个字段都有⼀个 clear_ ⽅法，可以将字段重新设置回 empty 状态。 
+>• 每个字段都有设置和获取的⽅法， 获取⽅法的⽅法名称与⼩写字段名称完全相同。但如果是消息
+>类型的字段，其设置⽅法为 mutable_ ⽅法，返回值为消息类型的指针，这类⽅法会为我们开辟
+>好空间，可以直接对这块空间的内容进⾏修改。
+>• 对于使⽤ repeated 修饰的字段，也就是数组类型，pb 为我们提供了 add_ ⽅法来新增⼀个值，
+>并且提供了 _size ⽅法来判断数组存放元素的个数。 
+
+
+
+##### 通讯录 2.0 的写⼊实现 
+
+###### write.cc
+
+```
+#include<iostream>
+#include<fstream>
+
+#include"contacts.pb.h"
+
+void Add_PeopleInfo(contacts::PeopleInfo* pi){
+  std::cout << "-------------新增联系⼈-------------" << std::endl;
+  std::cout << "请输⼊联系⼈姓名: ";
+  std::string name;
+  std::getline(std::cin,name);
+  pi->set_name(name);
+
+  std::cout << "请输⼊联系⼈年龄: ";
+  int age = 0;
+  std::cin>>age;
+  pi->set_age(age);
+  std::cin.ignore(256,'\n');  //cin读完后,缓冲区还会剩分隔符及后面的数据,如果下次读取是getline则会把这个分隔符一并读取, 可能导致得到不想要的结果;因此可以清理一下
+
+  for(int i = 0; ;i++) {
+    std::cout<<"请输入联系人电话"<<i+1<<"(只输入回车完成电话新增):";
+    std::string number;
+    getline(std::cin,number);
+    if(number.empty())//getline会忽略分割符(换行),下次会跳过
+    {
+      break;
+    }
+    pi->add_phone()->set_number(number);
+  }
+
+  std::cout<<"添加联系人成功"<<std::endl;
+}
+
+
+int main(){
+  // GOOGLE_PROTOBUF_VERIFY_VERSION 宏: 验证没有意外链接到与编译的头⽂件不兼容的库版 本。如果检测到版本不匹配，程序将中 ⽌。注意，每个 .pb.cc ⽂件在启动时都会⾃动调⽤此宏。在使 ⽤ C++ Protocol Buffer 库之前执⾏此宏是⼀种很好的做法，但不是绝对必要的。
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+
+  //1. 打开文件
+  //2. 反序列化已有数据并读取至内存
+  //3. 追加
+  //4. 序列化并写入回文件
+
+  //1
+  std::fstream ifs("contacts.bin",std::ios::in|std::ios::binary);
+  if(ifs.is_open()){
+    std::cout<<"contacts.bin is open"<<std::endl;
+  }
+  else{
+    std::cout<<"contacts.bin is not found"<<std::endl;
+  }
+
+  //2
+  contacts::Contacts con;
+  con.ParseFromIstream(&ifs);
+
+
+  //3.追加
+  Add_PeopleInfo(con.add_peopleinfo());
+
+
+  //4.写回
+  std::fstream ofs("contacts.bin",std::ios::out|std::ios::binary);
+  if(ofs){
+    std::cout<<"contacts.bin is open"<<std::endl;
+  }
+  else{
+    std::cout<<"contacts.bin is not found"<<std::endl;
+  }
+
+  con.SerializeToOstream(&ofs);
+
+  ifs.close();
+  ofs.close();
+
+    // 在程序结束时调⽤ ShutdownProtobufLibrary()，为了删除 Protocol Buffer 库分配的所 有全局对象。对于⼤多数程序来说这 是不必要的，因为该过程⽆论如何都要退出，并且操作系统将负责 回收其所有内存。但是，如果你使⽤了内存泄漏检查程序，该程序需 要释放每个最后对象，或者你正在 编写可以由单个进程多次加载和卸载的库，那么你可能希望强制使⽤ Protocol Buffers 来清理所有 内容。
+  google::protobuf::ShutdownProtobufLibrary();
+
+  return 0;
+}
+```
+
+
+
+###### Makefile
+
+```
+all:write read
+
+
+write:write.cc contacts.pb.cc
+        g++ -o $@ $^ -std=c++11 -lprotobuf
+
+read:read.cc  contacts.pb.cc
+        g++ -o $@ $^ -std=c++11 -lprotobuf
+
+
+protoc:*.proto
+        protoc --cpp_out=. $^
+
+
+.PHONY:clean
+clean:
+        ## rm *.pb.* -rf
+        rm test -rf
+        ##rm *.bin
+```
+
+make之后，运⾏ write 
+
+```
+-------------新增联系⼈-------------
+请输⼊联系⼈姓名: 张三
+请输⼊联系⼈年龄: 18
+请输⼊联系⼈电话1(只输⼊回⻋完成电话新增): 123123123 
+请输⼊联系⼈电话2(只输⼊回⻋完成电话新增): 333344441 
+请输⼊联系⼈电话3(只输⼊回⻋完成电话新增): 
+-----------添加联系⼈成功-----------
+```
+
+
+
+##### hexdump  查看⼆进制⽂件
+
+```
+[chj@gz protu3 12:27:25]$ hexdump -C contacts.bin
+00000000  0a 31 0a 06 e5 bc a0 e4  b8 89 10 12 1a 0b 0a 09  |.1..............|
+00000010  31 32 33 31 32 33 31 32  33 1a 0b 0a 09 33 33 33  |123123123....333|
+00000020  33 34 34 34 34 31 1a 0b  0a 09 35 31 32 33 31 35  |344441....512315|
+00000030  32 31 33 0a 31 0a 06 e6  9d 8e e5 9b 9b 10 2c 1a  |213.1.........,.|
+00000040  0c 0a 0a 34 31 33 31 34  34 34 33 32 31 1a 0a 0a  |...4131444321...|
+00000050  08 36 36 36 35 34 32 32  32 1a 0b 0a 09 33 31 32  |.66654222....312|
+00000060  31 32 31 31 33 33                                 |121133|
+00000066
+```
+
+解释： 
+    hexdump：是Linux下的⼀个⼆进制⽂件查看⼯具，它可以将⼆进制⽂件转换为ASCII、⼋进制、
+⼗进制、⼗六进制格式进⾏查看。
+    -C: 表⽰每个字节显⽰为16进制和相应的ASCII字符
+
+
+
+##### 通讯录 2.0 的读取实现 
+
+###### read.cc 
+
+```
+#include<iostream>
+#include<fstream>
+#include<memory>
+
+#include"contacts.pb.h"
+
+void PrintContacts(const contacts::Contacts& con){
+  for(int i = 0;i<con.peopleinfo_size() ;i++){
+    contacts::PeopleInfo pi = con.peopleinfo(i);
+    std::cout<<"联系人姓名: "<<pi.name()<<std::endl;
+    std::cout<<"联系人年龄: "<<pi.age()<<std::endl;
+    for(int j = 0 ; j<pi.phone_size();j++){
+      //const contacts::PeopleInfo_Phone& phone = pi.phone(j);
+      std::cout<<"联系人电话"<<j+1<<": "<<pi.phone(j).number()<<std::endl;
+    }
+    std::cout<<std::endl;
+  }
+}
+
+int main(){
+  std::fstream ifs("contacts.bin",std::ios::in|std::ios::binary);
+  if(!ifs.is_open()){
+    std::cerr<<"file open error"<<std::endl;
+    return -1;
+  }
+  contacts::Contacts con;
+  con.ParseFromIstream(&ifs);
+  PrintContacts(con);
+
+  ifs.close();
+  return 0;
+}
+```
+
+运行read
+
+```
+[chj@gz protu3 14:45:16]$ ./read
+联系人姓名: 张三
+联系人年龄: 18
+联系人电话1: 123123123
+联系人电话2: 333344441
+联系人电话3: 512315213
+
+联系人姓名: 李四
+联系人年龄: 44
+联系人电话1: 4131444321
+联系人电话2: 66654222
+联系人电话3: 312121133
+```
+
+
+
+##### 另⼀种验证⽅法 protpc --decode  
+
+我们可以⽤ protoc -h 命令来查看 ProtoBuf 为我们提供的所有命令 option。其中 ProtoBuf 提供⼀个命令选项 --decode ，表⽰从标准输⼊中读取给定类型的⼆进制消息，并将其以⽂本格式写⼊标准输出。 消息类型必须在 .proto ⽂件或导⼊的⽂件中定义。 
+
+```
+[chj@gz protu3 14:34:41]$ protoc --decode=contacts.Contacts contacts.proto < contacts.bin
+peopleinfo {
+  name: "\345\274\240\344\270\211"
+  age: 18
+  phone {
+    number: "123123123"
+  }
+  phone {
+    number: "333344441"
+  }
+  phone {
+    number: "512315213"
+  }
+}
+peopleinfo {
+  name: "\346\235\216\345\233\233"
+  age: 44
+  phone {
+    number: "4131444321"
+  }
+  phone {
+    number: "66654222"
+  }
+  phone {
+    number: "312121133"
+  }
+}
+```
+
