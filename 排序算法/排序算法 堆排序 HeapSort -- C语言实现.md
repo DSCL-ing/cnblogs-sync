@@ -48,25 +48,55 @@ void HeapSort(int *a, int size)
 	
 	// ---- 1. 向下调整算法建堆  ----
 	//时间复杂度O(n)
-	int parent = (size - 1 - 1) / 2;
-	while (parent >= 0)
-	{
-		AdjustDown(a, size, parent);
-		parent--;
-	}
+
+ //升序:建大堆
+    int min_parent = (size-1-1)/2;  //规律:左右孩子减1除2都是父亲
+    while (min_parent >= 0) {
+        AdjustDown(a,size,min_parent);
+        min_parent--;
+    }
+
 
 	
 	// ---- 2. 选数 ----
 	//时间复杂度O(n*logN),n个数都要高度次调整
-	//int end = size - 1; //下标版本
-	//元素个数版本,能够复用删除写法
-    while (size > 1) //元素个数大于1
+    while (size > 1) //下标size-1>0 从后往前,当下标为0时已经有序,即下标末尾到1
 	{
-		Swap(&a[0], &a[size - 1]);		//交换
+		//"删除"
+		Swap(&a[0], &a[size - 1]);
 		size--;
-		AdjustDown(a, size, 0);  //调整堆 -- 注意,此处end为元素个数
+		AdjustDown(a, size, 0);  
 	}
 
+}
+```
+
+AdjustDown.cc
+
+```
+//大堆版本
+//默认升序,建大堆删除(放后面),得到就是升序,即把最大节点往下调 --> 大堆删除
+void AdjustDown(int *a, int size, int parent) {
+    //定义一个孩子,默认左边最大
+    int child = parent * 2 + 1;
+    while (child < size ){ //孩子到叶子结束,等价于最小父亲了
+        //确定最大孩子,不要越界
+        if (child + 1 < size && a[child] < a[child + 1]) {  
+            child = child + 1;
+        }
+
+        //孩子大于父亲,换
+        if (a[child] > a[parent]) {
+            std::swap(a[child], a[parent]);
+            //更新迭代
+            parent++;
+            child = parent * 2 + 1;
+        }
+	else
+		{
+			break;
+		}
+	}
 }
 ```
 
@@ -117,3 +147,20 @@ O(n) = n*logN
 */
 ```
 
+
+
+### 记忆技巧:
+
+无论是向上和向下调整算法,最好的用法都是从底开始;
+
+如果是向上调整,功能是将底部的节点往上调整;
+
+1. 秉着从低开始是最好的原则,最好的用途就是在已有堆的基础上插入;
+
+2. 插入的节点一定是放在末尾的,即孩子节点,因此使用孩子作为参数;
+
+如果是向下调整,功能是将上面的节点往下调整;
+
+1. 只有父结点才能向下调整,因此参数是父亲;
+2. 同理,建堆最好就是从底部开始,即从最小父亲开始建堆;
+3. 删除只能删顶节点,也只能使用向下调整;
